@@ -293,21 +293,10 @@
         </nav>
     </div>
 
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="user-profile.js"></script>
+    <!-- Supabase -->
     <script type="module">
-        const firebaseConfig = {
-            apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-            authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
-            projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-            storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebasestorage.app`,
-            messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-            appId: import.meta.env.VITE_FIREBASE_APP_ID
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        import { db } from './auth.js';
+        import { StreakManager } from './streak-manager.js';
 
         window.showTab = function (tabId) {
             document.querySelectorAll('.lb-section').forEach(s => s.classList.remove('active'));
@@ -316,9 +305,10 @@
             event.target.classList.add('active');
         };
 
-        const LB_RT = 'lb_reaction_tap_v2';
-        const LB_CF = 'lb_combo_flash_v2';
-        const LB_STREAK = 'lb_streaks_v2';
+        // Table Mapping
+        const LB_RT = 'leaderboard_reflex';
+        const LB_CF = 'leaderboard_combo';
+        const LB_STREAK = 'leaderboard_streaks';
         const MAX_LB = 100;
 
         function getPlayerName() {
@@ -326,39 +316,44 @@
             return (d.ring_name || 'FIGHTER').toUpperCase();
         }
 
-        async function loadLeaderboard(collection, bodyId, isLower, unitLabel) {
-            const order = isLower ? 'asc' : 'desc';
+        async function loadLeaderboard(tableName, bodyId, isLower, unitLabel) {
             const body = document.getElementById(bodyId);
             const myName = getPlayerName();
 
             try {
-                const snap = await db.collection(collection).orderBy('score', order).limit(MAX_LB).get();
-                if (snap.empty) {
+                // Fetch data from Supabase
+                const { data, error } = await db
+                    .from(tableName)
+                    .select('*')
+                    .order('score', { ascending: isLower })
+                    .limit(MAX_LB);
+
+                if (error) throw error;
+                if (!data || data.length === 0) {
                     body.innerHTML = '<div class="lb-empty">No combat data recorded yet.</div>';
                     return;
                 }
 
                 let html = '';
-                snap.docs.forEach((doc, i) => {
-                    const d = doc.data();
+                data.forEach((d, i) => {
                     const rank = i + 1;
                     const posClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
                     const posIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
                     const isMe = d.name === myName;
 
-                    const isStreak = collection === LB_STREAK;
+                    const isStreak = tableName === LB_STREAK;
                     const r = isStreak ? StreakManager.getRank(d.score) : null;
                     const rankBadgeHtml = r ? `<span class="rank-badge ${r.class}" style="font-size: 0.45rem; padding: 2px 5px; margin-left: 8px; vertical-align: middle;"><i class="fa-solid ${r.icon}" style="font-size: 0.4rem; margin-right: 2px;"></i> ${r.name}</span>` : '';
 
                     html += `<div class="lb-row${isMe ? ' me' : ''}">
                         <div class="lb-pos ${posClass}">${posIcon}</div>
                         <div class="lb-name">${isMe ? '★ ' : ''}${d.name}${rankBadgeHtml}</div>
-                        <div class="lb-score">${d.display}${unitLabel}</div>
+                        <div class="lb-score">${d.display_val || d.score}${unitLabel}</div>
                     </div>`;
                 });
                 body.innerHTML = html;
             } catch (e) {
-                console.error(e);
+                console.error("Leaderboard Load Error:", e);
                 body.innerHTML = '<div class="lb-empty">Link to Database Failed.</div>';
             }
         }
@@ -369,9 +364,11 @@
             loadLeaderboard(LB_CF, 'cf-lb-body', false, ' avg pts');
 
             // Populate Nav Streak
-            const currentStr = StreakManager.checkAndGetStreak();
-            const badge = document.querySelector('.nav-hex-wrap .streak-badge span');
-            if (badge) badge.innerText = currentStr;
+            if (window.StreakManager) {
+                const currentStr = StreakManager.checkAndGetStreak();
+                const badge = document.querySelector('.nav-hex-wrap .streak-badge span');
+                if (badge) badge.innerText = currentStr;
+            }
         });
     </script>
 </body>

@@ -8,6 +8,24 @@
     <title>Today's Mission - AI Boxing Guru</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <script>
+        function enterFullscreen() {
+            const doc = window.document;
+            const docEl = doc.documentElement;
+            const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            if (requestFullScreen && !doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                requestFullScreen.call(docEl).catch(err => {
+                    console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            }
+        }
+        document.addEventListener('touchstart', enterFullscreen, { once: true });
+        document.addEventListener('click', enterFullscreen, { once: true });
+    </script>
     <script src="streak-manager.js"></script>
     <script src="sound-effects.js"></script>
     <script src="notification-manager.js"></script>
@@ -581,44 +599,23 @@
                 class="nav-link"><i class="fa-solid fa-user"></i><span>PROFILE</span></a>
         </nav>
     </div><!-- end .app-container -->
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="user-profile.js"></script>
-    <script src="workout-data.js"></script>
-    <script> // Init Firebase for Sync
+    <!-- Supabase -->
+    <script type="module">
+        import { db } from './auth.js';
+        import { StreakManager } from './streak-manager.js';
 
-        const firebaseConfig = {
-            apiKey: (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FIREBASE_API_KEY)
-                ? import.meta.env.VITE_FIREBASE_API_KEY
-                : 'AIzaSyAxY5fBm_NxO1Zazb3m3rOGUfUvNS1duUU',
-            authDomain: `${(typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FIREBASE_PROJECT_ID)
-                ? import.meta.env.VITE_FIREBASE_PROJECT_ID
-                : 'the-user-info-boxing'}.firebaseapp.com`,
-            projectId: (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FIREBASE_PROJECT_ID)
-                ? import.meta.env.VITE_FIREBASE_PROJECT_ID
-                : 'the-user-info-boxing',
-            storageBucket: `${(typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FIREBASE_PROJECT_ID)
-                ? import.meta.env.VITE_FIREBASE_PROJECT_ID
-                : 'the-user-info-boxing'}.firebasestorage.app`,
-            messagingSenderId: (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID)
-                ? import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID
-                : '253875884536',
-            appId: (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FIREBASE_APP_ID)
-                ? import.meta.env.VITE_FIREBASE_APP_ID
-                : '1:253875884536:web:4110313b3f7d912de5860d'
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        window.db = db;
 
         document.addEventListener('DOMContentLoaded', async () => {
             const data = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
             const name = (data.ring_name || 'FIGHTER').toUpperCase();
-            document.getElementById('hud-user').innerText = name;
+            const hudUser = document.getElementById('hud-user');
+            if (hudUser) hudUser.innerText = name;
 
-            // Sync Streak with Firebase
-            StreakManager.syncWithFirebase(db);
+            // Sync Streak with Supabase
+            if (window.StreakManager) {
+                StreakManager.syncWithSupabase(db);
+            }
 
             // Random Heart Flicker
             setInterval(() => {
@@ -1037,9 +1034,11 @@
 
                     , 500);
             }
-        }
+        };
 
-            ;
+        window.Tutorial = Tutorial;
+
+        ;
 
         // Boot tutorial after dashboard loads
         document.addEventListener('DOMContentLoaded', () => {

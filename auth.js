@@ -1,18 +1,10 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import firebaseConfig from "./firebase-config.js";
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+import { supabase } from "./supabase-client.js";
 
 // Check if user is logged in
 export const checkAuthState = (callback) => {
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            callback(true, user);
+    supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            callback(true, session.user);
         } else {
             callback(false, null);
         }
@@ -22,17 +14,21 @@ export const checkAuthState = (callback) => {
 // Register with Email
 export const registerWithEmail = async (email, password) => {
     try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password
+        });
+
+        if (error) throw error;
 
         // Sync onboarding data if it exists
         const onboardingData = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
         if (Object.keys(onboardingData).length > 0) {
-            await saveUserProfile(user.uid, onboardingData);
+            await saveUserProfile(data.user.id, onboardingData);
             localStorage.removeItem('boxing_onboarding_data');
         }
 
-        return { success: true, user };
+        return { success: true, user: data.user };
     } catch (error) {
         return { success: false, error: error.message };
     }
@@ -41,8 +37,13 @@ export const registerWithEmail = async (email, password) => {
 // Simple Email Login
 export const loginWithEmail = async (email, password) => {
     try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        return { success: true, user: userCredential.user };
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+
+        if (error) throw error;
+        return { success: true, user: data.user };
     } catch (error) {
         return { success: false, error: error.message };
     }
@@ -51,7 +52,11 @@ export const loginWithEmail = async (email, password) => {
 // Save User Profile Data
 export const saveUserProfile = async (uid, data) => {
     try {
-        await setDoc(doc(db, "users", uid), data, { merge: true });
+        const { error } = await supabase
+            .from('profiles')
+            .upsert({ id: uid, ...data });
+
+        if (error) throw error;
         return { success: true };
     } catch (error) {
         return { success: false, error: error.message };
@@ -61,7 +66,7 @@ export const saveUserProfile = async (uid, data) => {
 // Logout
 export const logoutUser = async () => {
     try {
-        await signOut(auth);
+        await supabase.auth.signOut();
         localStorage.removeItem('boxing_guru_logged_in');
         window.location.href = 'index.html';
     } catch (error) {
@@ -69,4 +74,5 @@ export const logoutUser = async () => {
     }
 };
 
-export { auth, db };
+export { supabase as db }; // Exporting as db for backwards compatibility in UI files
+

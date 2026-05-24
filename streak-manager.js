@@ -1,4 +1,4 @@
-const StreakManager = {
+export const StreakManager = {
     STORAGE_KEY: 'boxing_streak_data',
 
     getStreakData() {
@@ -63,8 +63,8 @@ const StreakManager = {
         return data.currentStreak;
     },
 
-    async syncWithFirebase(db) {
-        if (!db) return;
+    async syncWithSupabase(client) {
+        if (!client) return;
 
         try {
             const onboardingData = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
@@ -73,29 +73,22 @@ const StreakManager = {
 
             if (streak <= 0) return;
 
-            const collection = 'lb_streaks_v2';
-            const entry = {
-                name,
-                score: streak,
-                display: streak.toString(),
-                ts: Date.now()
-            };
+            // Simplified upsert logic for Supabase
+            const { error } = await client
+                .from('leaderboard_streaks')
+                .upsert({
+                    name: name,
+                    score: streak,
+                    display_val: streak.toString(),
+                    last_updated: new Date().toISOString()
+                }, {
+                    onConflict: 'name'
+                });
 
-            const existing = await db.collection(collection).where('name', '==', name).get();
-
-            if (!existing.empty) {
-                const doc = existing.docs[0];
-                const oldScore = doc.data().score;
-                // Update if streak is better or same (to update timestamp)
-                if (streak >= oldScore) {
-                    await doc.ref.update(entry);
-                }
-            } else {
-                await db.collection(collection).add(entry);
-            }
-            console.log("Streak synced with Firebase:", streak);
+            if (error) throw error;
+            console.log("Streak synced with Supabase:", streak);
         } catch (e) {
-            console.error("Firebase Streak Sync Error:", e);
+            console.error("Supabase Streak Sync Error:", e);
         }
     },
 

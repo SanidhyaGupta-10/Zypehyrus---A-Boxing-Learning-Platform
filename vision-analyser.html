@@ -8,6 +8,24 @@
     <title>AI Vision Analyser - ZEPHYR Boxing</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <script>
+        function enterFullscreen() {
+            const doc = window.document;
+            const docEl = doc.documentElement;
+            const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            if (requestFullScreen && !doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                requestFullScreen.call(docEl).catch(err => {
+                    console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            }
+        }
+        document.addEventListener('touchstart', enterFullscreen, { once: true });
+        document.addEventListener('click', enterFullscreen, { once: true });
+    </script>
     <link rel="icon" href="data:,">
     <link
         href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Space+Grotesk:wght@300;700;950&display=swap"
@@ -2063,33 +2081,16 @@
 
         // ── ZEPHYR API config ──────────────────────────────────────
         // ── ZEPHYR Backend Config ──────────────────────────────────
-        // Using relative path for backend to accommodate Hostinger deployment
-        const BACKEND_URL = '/api/session-summary';
+        // Dynamic URL for Cloud Run deployment, relative fallback for dev
+        const BACKEND_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_BACKEND_URL)
+            ? import.meta.env.VITE_BACKEND_URL + '/api/session-summary'
+            : '/api/session-summary';
 
 
-        // Firebase Init (Robust for Vite and vanilla)
-        const firebaseConfig = {
-            apiKey: (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FIREBASE_API_KEY)
-                ? import.meta.env.VITE_FIREBASE_API_KEY
-                : 'AIzaSyAxY5fBm_NxO1Zazb3m3rOGUfUvNS1duUU',
-            authDomain: `${(typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FIREBASE_PROJECT_ID)
-                ? import.meta.env.VITE_FIREBASE_PROJECT_ID
-                : 'the-user-info-boxing'}.firebaseapp.com`,
-            projectId: (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FIREBASE_PROJECT_ID)
-                ? import.meta.env.VITE_FIREBASE_PROJECT_ID
-                : 'the-user-info-boxing',
-            storageBucket: `${(typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FIREBASE_PROJECT_ID)
-                ? import.meta.env.VITE_FIREBASE_PROJECT_ID
-                : 'the-user-info-boxing'}.firebasestorage.app`,
-            messagingSenderId: (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID)
-                ? import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID
-                : '253875884536',
-            appId: (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FIREBASE_APP_ID)
-                ? import.meta.env.VITE_FIREBASE_APP_ID
-                : '1:253875884536:web:4110313b3f7d912de5860d'
-        };
-        firebase.initializeApp(firebaseConfig);
-        window.db = firebase.firestore();
+        // Supabase / Auth Bridge
+        // We use a module import later in the script or assume auth.js is loaded
+        // For vision-analyser, we'll keep it simple and sync via the global db object if it exists
+
 
         // ── State ──────────────────────────────────────────────────
         let selectedVoiceProfile = 'steel'; // Default voice
@@ -3372,6 +3373,9 @@ Generate one drill_data entry per command: ${commandLog.map(c => c.command).join
             // Update Global Streak
             if (window.StreakManager) {
                 StreakManager.completeSession();
+                if (window.db) {
+                    StreakManager.syncWithSupabase(window.db);
+                }
             }
         }
 
@@ -3403,6 +3407,11 @@ Generate one drill_data entry per command: ${commandLog.map(c => c.command).join
             speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
         }
     </script>
+    <script type="module">
+        import { db } from './auth.js';
+        window.db = db;
+    </script>
+
 
 </body>
 
