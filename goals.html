@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Dominance - AI Boxing Protocol</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="audio-engine.js"></script>
+    <style>
+        :root {
+            --neon: #E2FF3B;
+            --zinc-900: #0a0a0c;
+            --zinc-500: #71717a;
+            --primary: #E2FF3B;
+            --primary-rgb: 226, 255, 59;
+        }
+
+        .onboarding-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .strategy-label {
+            color: var(--neon);
+            font-size: 0.7rem;
+            font-weight: 950;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .step-label {
+            color: var(--zinc-500);
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .hero-section {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .hero-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            font-style: italic;
+            text-transform: uppercase;
+            line-height: 0.9;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+        }
+
+        .hero-title span {
+            color: var(--neon);
+        }
+
+        .hero-subtitle {
+            font-size: 0.8rem;
+            color: var(--zinc-500);
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            line-height: 1.4;
+        }
+
+        .dominance-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            padding: 20px 0;
+            flex: 1;
+        }
+
+        .dominance-card {
+            width: 100%;
+            height: 180px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            position: relative;
+            opacity: 0.6;
+            transform: scale(0.95);
+        }
+
+        .dominance-card.active {
+            background: rgba(255, 255, 255, 0.04);
+            border: 2px solid var(--neon);
+            box-shadow: 0 0 40px rgba(var(--primary-rgb), 0.2);
+            z-index: 10;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .recommended-badge {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--neon);
+            color: #000;
+            font-size: 0.5rem;
+            font-weight: 950;
+            padding: 4px 12px;
+            border-radius: 50px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: none;
+            z-index: 20;
+        }
+
+        .dominance-card.active .recommended-badge {
+            display: block;
+        }
+
+        .icon-circle {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .dominance-card.active .icon-circle {
+            width: 55px;
+            height: 55px;
+            background: rgba(var(--primary-rgb), 0.1);
+            border-color: var(--neon);
+            box-shadow: 0 0 25px rgba(var(--primary-rgb), 0.3);
+            font-size: 1.2rem;
+        }
+
+        .card-label {
+            font-size: 0.75rem;
+            font-weight: 800;
+            font-style: italic;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .active .card-label {
+            color: var(--neon);
+        }
+
+
+        .deploy-btn {
+            width: 100%;
+            height: 75px;
+            background: var(--neon);
+            color: #000;
+            border: none;
+            border-radius: 100px;
+            font-size: 1.3rem;
+            font-weight: 950;
+            font-style: italic;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            box-shadow: 0 10px 40px rgba(var(--primary-rgb), 0.3);
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body class="onboarding-body-lock onboarding-layout">
+    <div class="app-container dashboard-bg">
+        <div class="onboarding-content">
+            <div>
+                <div class="onboarding-header">
+                    <div class="strategy-label">STRATEGY DEPLOYED</div>
+                    <div class="step-label">STEP 03 / 10</div>
+                </div>
+                <section class="hero-section anim-slide-right">
+                    <h1 class="hero-title">SELECT YOUR<br><span>DOMINANCE</span></h1>
+                    <p class="hero-subtitle">ALIGN YOUR TRAINING STRATEGY WITH YOUR PRIMARY ATHLETIC OBJECTIVE.</p>
+                </section>
+            </div>
+
+            <main class="dominance-grid">
+                <div class="dominance-card" onclick="selectGoal(this, 'Stamina')">
+                    <div class="icon-circle"><i class="fa-solid fa-heart"></i></div>
+                    <div class="card-label">STAMINA</div>
+                </div>
+
+                <div class="dominance-card active" onclick="selectGoal(this, 'Aerial')">
+                    <div class="recommended-badge">RECOMMENDED</div>
+                    <div class="icon-circle"><i class="fa-solid fa-bolt"></i></div>
+                    <div class="card-label">AERIAL</div>
+                </div>
+
+                <div class="dominance-card" onclick="selectGoal(this, 'Strength')">
+                    <div class="icon-circle"><i class="fa-solid fa-dumbbell"></i></div>
+                    <div class="card-label">STRENGTH</div>
+                </div>
+
+                <div class="dominance-card" onclick="selectGoal(this, 'Endurance')">
+                    <div class="icon-circle"><i class="fa-solid fa-shield-halved"></i></div>
+                    <div class="card-label">ENDURANCE</div>
+                </div>
+            </main>
+
+            <footer style="margin-top: 30px;">
+                <button class="deploy-btn" id="next-btn">DEPLOY STRATEGY <i
+                        class="fa-solid fa-arrow-right"></i></button>
+                <a href="index.html"
+                    style="display: block; margin-top: 15px; color: var(--zinc-500); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; text-decoration: none; text-align: center;">BACK</a>
+            </footer>
+        </div>
+    </div>
+
+    <script type="module">
+        let selectedGoal = 'Aerial';
+        window.selectGoal = function (el, goal) {
+            document.querySelectorAll('.dominance-card').forEach(card => card.classList.remove('active'));
+            el.classList.add('active');
+            selectedGoal = goal;
+        };
+        document.getElementById('next-btn').onclick = function () {
+            const data = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
+            data.primary_goal = selectedGoal;
+            localStorage.setItem('boxing_onboarding_data', JSON.stringify(data));
+            window.location.href = 'experience.html';
+        };
+    </script>
+</body>
+
+</html>

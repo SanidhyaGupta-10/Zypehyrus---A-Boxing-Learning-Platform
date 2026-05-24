@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technique Detail</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .page-header-v2 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .hero-title-v2 {
+            font-size: 1.5rem;
+            font-weight: 950;
+            color: #fff;
+            text-transform: uppercase;
+            font-style: italic;
+            letter-spacing: -0.5px;
+        }
+
+        .filter-tags {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .filter-tag {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 100px;
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .filter-tag.active {
+            background: var(--primary);
+            color: #000;
+            border-color: var(--primary);
+        }
+
+        /* Hero Card */
+        .tech-hero-card {
+            height: 380px;
+            border-radius: 35px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .tech-hero-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .tech-hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0.95) 10%, rgba(0, 0, 0, 0.2) 60%, transparent 100%);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .tech-badge {
+            background: var(--primary);
+            color: #000;
+            padding: 6px 12px;
+            border-radius: 100px;
+            font-size: 0.6rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            align-self: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .tech-hero-title {
+            font-size: 2.5rem;
+            font-weight: 950;
+            color: #fff;
+            text-transform: uppercase;
+            font-style: italic;
+            line-height: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .tech-hero-desc {
+            font-size: 0.8rem;
+            color: #bbb;
+            line-height: 1.4;
+            max-width: 80%;
+            margin-bottom: 20px;
+        }
+
+        .play-btn-float {
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
+            width: 55px;
+            height: 55px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #000;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+
+        /* Power Bar within Hero */
+        .power-bar-container {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-right: 70px;
+            /* Space for play button */
+        }
+
+        .power-label {
+            font-size: 0.6rem;
+            font-weight: 900;
+            color: var(--primary);
+            text-transform: uppercase;
+        }
+
+        .power-track {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            margin: 0 15px;
+            overflow: hidden;
+        }
+
+        .power-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        /* Detail Breakdown Card */
+        .breakdown-card {
+            background: rgba(10, 10, 10, 0.95);
+            border: 1px solid rgba(162, 255, 0, 0.3);
+            border-radius: 35px;
+            padding: 30px 25px;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .breakdown-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+        }
+
+        .step-timeline-v2 {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 40px;
+            border-left: 2px solid rgba(162, 255, 0, 0.15);
+            margin-left: 10px;
+        }
+
+        .step-item-v2 {
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .step-num-v2 {
+            position: absolute;
+            left: -31px;
+            background: var(--primary);
+            color: #000;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 950;
+            box-shadow: 0 0 10px rgba(162, 255, 0, 0.3);
+        }
+
+        .step-text-v2 {
+            font-size: 1rem;
+            color: #eee;
+            line-height: 1.4;
+            font-weight: 500;
+            padding-left: 5px;
+        }
+
+        .stat-circles-row {
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+        }
+
+        .stat-circle-box {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 30px;
+            padding: 15px 10px;
+            flex: 1;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            aspect-ratio: 1/1.2;
+            justify-content: center;
+        }
+
+        .stat-circle-val {
+            color: var(--primary);
+            font-weight: 950;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .stat-circle-label {
+            color: #666;
+            font-size: 0.5rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        /* Encyclopedia / Related */
+        .encyclo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .encyclo-card {
+            background: #111;
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+        }
+
+        .encyclo-card:hover {
+            border-color: rgba(var(--primary-rgb), 0.35);
+            box-shadow: 0 0 18px rgba(var(--primary-rgb), 0.1);
+        }
+
+        .encyclo-icon {
+            width: 35px;
+            height: 35px;
+            background: rgba(162, 255, 0, 0.1);
+            color: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+    </style>
+  <link rel="stylesheet" crossorigin href="/assets/style-DOhgGDO_.css">
+</head>
+
+<body style="background: #000;">
+    <div class="app-container">
+        <div class="page page-transition" style="padding-bottom: 120px; padding-top: 30px;">
+
+            <!-- Technical Breakdown Header -->
+            <div class="page-header-v2">
+                <div>
+                    <div style="font-size: 0.7rem; color: var(--primary); font-weight: 900; letter-spacing: 1px;">
+                        TECHNIQUE LIBRARY</div>
+                    <h1 class="hero-title-v2">TECHNICAL<br>BREAKDOWN</h1>
+                </div>
+                <div class="action-circle hover-scale" onclick="window.history.back()"
+                    style="width: 45px; height: 45px; background: rgba(255,255,255,0.1); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </div>
+            </div>
+
+            <!-- Visual Filters (Static for design) -->
+            <div class="filter-tags">
+                <div class="filter-tag active" id="cat-indicator">PUNCHES</div>
+            </div>
+
+            <!-- HERO CARD (Technique of the Day style) -->
+            <div class="tech-hero-card">
+                <img id="tech-img" src="" class="tech-hero-img">
+                <div class="tech-hero-overlay">
+                    <div class="tech-badge">TECHNIQUE OF THE DAY</div>
+                    <h2 class="tech-hero-title" id="tech-title">THE JAB</h2>
+                    <p class="tech-hero-desc" id="tech-desc">A straight lead-hand punch. Used for range-finding and
+                        setting up power.</p>
+
+                    <div class="power-bar-container">
+                        <div class="power-label" id="hero-stat-label">POWER</div>
+                        <div class="power-track">
+                            <div class="power-fill" id="power-bar-fill" style="width: 45%;"></div>
+                        </div>
+                        <div class="power-label" id="power-val-text">45%</div>
+                    </div>
+
+                    <div class="play-btn-float ripple hover-scale">
+                        <i class="fa-solid fa-play"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                style="font-size: 0.9rem; font-weight: 950; color: #fff; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-table-cells-large" style="color: var(--primary);"></i> ENCYCLOPEDIA
+            </div>
+
+            <!-- Small Encyclopedia Cards - dynamically populated -->
+            <div class="encyclo-grid" id="encyclo-grid"></div>
+
+            <!-- MAIN BREAKDOWN (Check Hook Style) -->
+            <div class="breakdown-card">
+                <div class="breakdown-header">
+                    <div>
+                        <h2 style="font-size: 1.5rem; color: var(--primary); font-style: italic; font-weight: 900; text-transform: uppercase; line-height: 1;"
+                            id="detail-title">THE CROUCH</h2>
+                        <div style="font-size: 0.7rem; color: #888; text-transform: uppercase; font-weight: 600;"
+                            id="detail-subtitle">Advanced Counter</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-up" style="color: var(--primary);"></i>
+                </div>
+
+                <div class="step-timeline-v2" id="detail-steps">
+                    <!-- Injected -->
+                </div>
+
+                <div class="stat-circles-row" id="detail-stats">
+                    <!-- Injected -->
+                </div>
+            </div>
+
+            <!-- PRO TIP & MISTAKES & TARGETS INJECTED HERE -->
+            <div id="advanced-details-container"></div>
+
+        </div>
+
+        <!-- Persistent Navigation Bar -->
+        <nav class="main-nav">
+            <a href="dashboard.html" class="nav-link">
+                <i class="fa-solid fa-house"></i>
+                <span>HOME</span>
+            </a>
+            <a href="analytics.html" class="nav-link">
+                <i class="fa-solid fa-chart-column"></i>
+                <span>ANALYSIS</span>
+            </a>
+            <a href="guru.html" class="nav-link">
+                <i class="fa-solid fa-robot"></i>
+                <span>GURU</span>
+            </a>
+
+            <div class="nav-hex-wrap" onclick="location.href='vision-analyser.html'">
+                <div class="nav-hex">
+                    <i class="fa-solid fa-play"></i>
+                </div>
+                <span class="nav-hex-label">VIDEO</span>
+            </div>
+
+            <a href="reflex-enhancer.html" class="nav-link">
+                <i class="fa-solid fa-bolt"></i>
+                <span>REFLEX</span>
+            </a>
+            <a href="planner.html" class="nav-link">
+                <i class="fa-solid fa-calendar-check"></i>
+                <span>PLANNER</span>
+            </a>
+            <a href="settings.html" class="nav-link">
+                <i class="fa-solid fa-user"></i>
+                <span>PROFILE</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Data Source -->
+    <script src="techniques-data.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const id = urlParams.get('id');
+            const category = urlParams.get('cat') || 'TECHNIQUE';
+
+            // Find data in techniquesData object
+            let item = null;
+            let categoryKey = null; // e.g. 'punches', 'kicks'
+
+            // Search all arrays to find the item & its category key
+            for (const key in techniquesData) {
+                const found = techniquesData[key].find(t => t.id === id);
+                if (found) {
+                    item = found;
+                    categoryKey = key;
+
+                    // Update category tag visual
+                    const labelMap = {
+                        punches: 'PUNCHES',
+                        stances: 'STANCE',
+                        kicks: 'KICKS',
+                        defense: 'DEFENSE'
+                    };
+                    document.getElementById('cat-indicator').innerText = labelMap[key] || key.toUpperCase();
+                    break;
+                }
+            }
+
+            if (item) {
+                // Populate Hero
+                document.getElementById('tech-title').innerText = item.name;
+                document.getElementById('tech-desc').innerText = item.desc;
+                document.getElementById('tech-img').src = item.image || 'assets/placeholder_tech.jpg';
+
+                // Hero Bar now matches the "Effectiveness" shown on the card
+                const heroLabel = 'EFFECTIVENESS';
+                const heroVal = item.score;
+
+                document.getElementById('hero-stat-label').innerText = heroLabel;
+                document.getElementById('power-bar-fill').style.width = heroVal + "%";
+                document.getElementById('power-val-text').innerText = heroVal + "%";
+
+                // Populate Breakdown Card
+                document.getElementById('detail-title').innerText = item.name;
+                document.getElementById('detail-subtitle').innerText = item.subtitle || "Technique Breakdown";
+
+                // Steps
+                const stepContainer = document.getElementById('detail-steps');
+                if (item.steps) {
+                    item.steps.forEach((step, idx) => {
+                        const div = document.createElement('div');
+                        div.className = 'step-item-v2';
+                        div.innerHTML = `
+                            <div class="step-num-v2">${idx + 1}</div>
+                            <div class="step-text-v2">${step}</div>
+                        `;
+                        stepContainer.appendChild(div);
+                    });
+                }
+
+                // Stats
+                const statContainer = document.getElementById('detail-stats');
+                if (item.stats) {
+                    item.stats.forEach(stat => {
+                        const div = document.createElement('div');
+                        div.className = 'stat-circle-box';
+                        div.innerHTML = `
+                            <div class="stat-circle-val">${stat.val}</div>
+                            <div class="stat-circle-label">${stat.label}</div>
+                        `;
+                        statContainer.appendChild(div);
+                    });
+                }
+
+                // --- Insert new elements here! ---
+                const advContainer = document.getElementById('advanced-details-container');
+                if (advContainer) {
+                    advContainer.innerHTML = '';
+
+                    // Targets
+                    if (item.targets && item.targets.length > 0) {
+                        let targetsHtml = item.targets.map(t => `<div style="padding: 6px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; font-size: 0.65rem; font-weight: 800; color: #fff; text-transform: uppercase;">${t}</div>`).join('');
+
+                        advContainer.innerHTML += `
+                            <div style="margin-bottom: 25px;">
+                                <div style="font-size: 0.7rem; font-weight: 900; color: #888; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px;">PRIMARY TARGETS</div>
+                                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                    ${targetsHtml}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // Pro Tip
+                    if (item.pro_tip) {
+                        advContainer.innerHTML += `
+                            <div class="glow-chart-box ripple hover-scale" style="padding: 20px; border-color: rgba(var(--primary-rgb), 0.4); background: rgba(var(--primary-rgb), 0.05); margin-bottom: 25px; border-radius: 20px;">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                    <i class="fa-solid fa-lightbulb" style="color: var(--primary); font-size: 1.2rem;"></i>
+                                    <span style="font-size: 0.7rem; font-weight: 900; color: var(--primary); text-transform: uppercase; letter-spacing: 1px;">AI COACH TIP</span>
+                                </div>
+                                <div style="font-size: 0.85rem; color: #ddd; line-height: 1.5; font-style: italic;">"${item.pro_tip}"</div>
+                            </div>
+                        `;
+                    }
+
+                    // Mistakes
+                    if (item.mistakes && item.mistakes.length > 0) {
+                        let mistakesHtml = item.mistakes.map(m => `
+                            <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 15px; background: rgba(255,0,0,0.05); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,0,0,0.1);">
+                                <div style="color: #ff4444; margin-top: 2px;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                                <div style="font-size: 0.8rem; color: #eee; line-height: 1.4;">${m}</div>
+                            </div>
+                        `).join('');
+
+                        advContainer.innerHTML += `
+                            <div style="margin-bottom: 30px;">
+                                <div style="font-size: 0.75rem; font-weight: 900; color: #ff4444; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;">
+                                    COMMON MISTAKES
+                                </div>
+                                <div>${mistakesHtml}</div>
+                            </div>
+                        `;
+                    }
+                }
+
+                // --- Populate Encyclopedia (Related Techniques) ---
+                const encycloGrid = document.getElementById('encyclo-grid');
+                if (categoryKey && techniquesData[categoryKey]) {
+                    const related = techniquesData[categoryKey].filter(t => t.id !== item.id);
+
+                    // Category icon map
+                    const iconMap = {
+                        punches: 'fa-hand-fist',
+                        stances: 'fa-person-walking',
+                        kicks: 'fa-shoe-prints',
+                        defense: 'fa-shield-halved'
+                    };
+                    const icon = iconMap[categoryKey] || 'fa-star';
+
+                    if (related.length === 0) {
+                        encycloGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#444;font-size:0.75rem;padding:20px;">No other techniques in this category yet.</div>`;
+                    } else {
+                        related.forEach(rel => {
+                            const card = document.createElement('div');
+                            card.className = 'encyclo-card hover-scale ripple';
+                            card.style.cursor = 'pointer';
+                            card.onclick = () => {
+                                window.location.href = `technical-detail.html?id=${rel.id}&cat=${categoryKey.toUpperCase()}`;
+                            };
+
+                            // Determine if this is the foundational pick
+                            const isFoundation = rel.isAiPick;
+                            const badgeHtml = isFoundation
+                                ? `<span style="font-size:0.45rem;font-weight:900;background:var(--primary);color:#000;padding:2px 7px;border-radius:100px;margin-left:6px;text-transform:uppercase;vertical-align:middle;">FOUNDATION</span>`
+                                : '';
+
+                            card.innerHTML = `
+                                <div class="encyclo-icon"><i class="fa-solid ${icon}"></i></div>
+                                <div style="font-size:0.9rem;font-weight:900;color:#fff;text-transform:uppercase;">
+                                    ${rel.name}${badgeHtml}
+                                </div>
+                                <div style="font-size:0.6rem;color:#666;font-weight:700;margin-top:3px;">${rel.subtitle}</div>
+                                <div class="eff-bar-track" style="margin-top:10px;background:rgba(255,255,255,0.05);">
+                                    <div class="eff-bar-fill" style="width:${rel.score}%"></div>
+                                </div>
+                                <div style="font-size:0.5rem;font-weight:800;color:var(--primary);margin-top:4px;text-transform:uppercase;">${rel.score}% EFFECTIVENESS</div>
+                            `;
+                            encycloGrid.appendChild(card);
+                        });
+                    }
+                }
+
+            } else {
+                document.getElementById('tech-title').innerText = "Not Found";
+            }
+        });
+    </script>
+</body>
+
+</html>

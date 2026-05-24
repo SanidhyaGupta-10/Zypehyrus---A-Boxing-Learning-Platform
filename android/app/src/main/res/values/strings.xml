@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ZEPHYR</string>
+    <string name="title_activity_main">ZEPHYR</string>
+    <string name="package_name">com.zephyr.boxing</string>
+    <string name="custom_url_scheme">com.zephyr.boxing</string>
+</resources>

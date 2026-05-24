@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combat Guru - Mastery Index</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="streak-manager.js"></script>
+    <style>
+        .mastery-header-card {
+            background: rgba(20, 255, 0, 0.05);
+            border: 1px solid rgba(20, 255, 0, 0.2);
+            border-radius: 40px;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            box-shadow: 0 0 30px rgba(20, 255, 0, 0.05);
+        }
+
+        .mastery-score {
+            font-size: 3.5rem;
+            font-weight: 950;
+            color: #fff;
+            line-height: 1;
+        }
+
+        .mastery-score span {
+            font-size: 1.2rem;
+            color: #666;
+            font-weight: 700;
+        }
+
+        /* Animated Circular Progress */
+        .circular-chart {
+            display: block;
+            margin: 0 auto;
+            max-width: 80%;
+            max-height: 250px;
+        }
+
+        .circle-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.1);
+            stroke-width: 2.5;
+        }
+
+        .circle {
+            fill: none;
+            stroke-width: 2.8;
+            stroke-linecap: round;
+            /* Start at 0 */
+            stroke-dasharray: 0, 100;
+            transition: stroke-dasharray 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .percentage {
+            fill: #fff;
+            font-family: 'Inter', sans-serif;
+            font-weight: 900;
+            font-size: 0.5em;
+            text-anchor: middle;
+        }
+
+        .mastery-meta {
+            text-align: left;
+        }
+
+        .mastery-label {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .mastery-val {
+            font-size: 2.5rem;
+            font-weight: 950;
+            color: #fff;
+            line-height: 1.1;
+            margin-bottom: 5px;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 950;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .tech-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 30px;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .tech-card:active {
+            transform: scale(0.96);
+        }
+
+        .ai-pick-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--primary);
+            color: #000;
+            font-size: 0.5rem;
+            font-weight: 900;
+            padding: 4px 8px;
+            border-radius: 100px;
+            z-index: 2;
+        }
+
+        .tech-image-area {
+            width: 100%;
+            aspect-ratio: 1/1;
+            margin-bottom: 12px;
+            border-radius: 20px;
+            background: #000;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .tech-image-area img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.8;
+            transition: 0.3s;
+        }
+
+        .tech-card:hover .tech-image-area img {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .tech-name {
+            font-size: 0.85rem;
+            font-weight: 950;
+            color: #fff;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .eff-bar-track {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .eff-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(var(--primary-rgb), 0.5);
+        }
+
+        .eff-label {
+            font-size: 0.5rem;
+            font-weight: 800;
+            color: #555;
+            text-transform: uppercase;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 10000;
+            display: none;
+            align-items: flex-end;
+            /* Bottom sheet style */
+            opacity: 0;
+            transition: 0.3s;
+        }
+
+        /* Modal - Refined to match 'Check Hook' Reference */
+        .modal-card {
+            background: #0a0a0a;
+            width: 100%;
+            border-radius: 40px 40px 0 0;
+            padding: 30px;
+            border-top: 1px solid rgba(162, 255, 0, 0.3);
+            /* Neon Green Border */
+            transform: translateY(100%);
+            transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);
+        }
+
+        .modal-hero-image {
+            width: 100%;
+            height: 200px;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 25px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-hero-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .modal-hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to top, #0a0a0a, transparent);
+        }
+
+        .modal-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--primary);
+            /* Neon Green */
+            font-style: italic;
+            text-transform: uppercase;
+            line-height: 0.9;
+            margin-bottom: 5px;
+            letter-spacing: -1px;
+        }
+
+        .modal-subtitle {
+            font-size: 0.8rem;
+            color: #888;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 30px;
+        }
+
+        .step-timeline {
+            position: relative;
+            padding-left: 25px;
+            margin-bottom: 40px;
+            border-left: 2px solid rgba(162, 255, 0, 0.2);
+            margin-left: 10px;
+        }
+
+        .step-item {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        /* Green Number Badge */
+        .step-num {
+            position: absolute;
+            left: -34px;
+            /* Adjust for border */
+            top: 0;
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            color: #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 900;
+            box-shadow: 0 0 15px rgba(162, 255, 0, 0.4);
+        }
+
+        .step-text {
+            color: #ddd;
+            font-size: 1rem;
+            line-height: 1.4;
+            font-weight: 500;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50px;
+            /* Pill/Circle shape */
+            flex: 1;
+            padding: 15px 10px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1/1;
+            /* Make them circularish if possible, or pill */
+        }
+
+        .stat-val {
+            font-size: 1.1rem;
+            font-weight: 950;
+            color: var(--primary);
+            margin-bottom: 2px;
+        }
+
+        .stat-label {
+            font-size: 0.5rem;
+            font-weight: 700;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .modal-close-btn {
+            background: var(--primary);
+            color: #000;
+            width: 100%;
+            padding: 18px;
+            border-radius: 100px;
+            font-weight: 900;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            border: none;
+            letter-spacing: 1px;
+            box-shadow: 0 5px 20px rgba(162, 255, 0, 0.3);
+        }
+    </style>
+    <script src="sound-effects.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/style-DOhgGDO_.css">
+</head>
+
+<body style="background: #000;">
+    <div class="app-container dashboard-bg">
+        <div class="mobile-constrained stage-padding">
+            <div class="page page-transition">
+
+                <!-- Header -->
+                <header
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px;">
+                    <div class="hero-container animate-float">
+                        <div>
+                            <div class="hero-sub-text">AI COUNSEL</div>
+                            <h1 class="hero-main-title">COMBAT<br>GURU</h1>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Mastery Header (Animated) -->
+                <div class="mastery-header-card">
+                    <div class="mastery-meta">
+                        <div class="mastery-label">Total Skills Available</div>
+                        <div class="mastery-val" id="total-skills-count">0</div>
+                        <div style="font-size: 0.7rem; color: var(--primary);">
+                            <i class="fa-solid fa-arrow-trend-up"></i> <span id="mastery-growth">0% Growth</span>
+                        </div>
+                    </div>
+
+                    <div style="width: 100px; height: 100px; position: relative;">
+                        <svg viewBox="0 0 36 36" class="circular-chart">
+                            <path class="circle-bg" d="M18 2.0845
+                            a 15.9155 15.9155 0 0 1 0 31.831
+                            a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path class="circle" stroke="var(--primary)" id="mastery-circle-path"
+                                stroke-dasharray="0, 100" d="M18 2.0845
+                            a 15.9155 15.9155 0 0 1 0 31.831
+                            a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <text x="18" y="20.35" class="percentage" id="mastery-percent-text">0%</text>
+                        </svg>
+                        <div
+                            style="position: absolute; bottom: -25px; width: 100%; text-align: center; font-size: 0.6rem; color: #666; font-weight: 800;">
+                            MASTERY</div>
+                    </div>
+                </div>
+                <!-- Stances -->
+                <div class="section-title">STANCES</div>
+                <div class="grid-2 stagger-anim" id="stances-grid">
+                    <!-- Populated by JS -->
+                </div>
+
+                <!-- Punches -->
+                <div class="section-title">PUNCHES</div>
+                <div class="grid-2 stagger-anim" id="punches-grid">
+                    <!-- Populated by JS -->
+                </div>
+
+                <!-- Kicks -->
+                <div class="section-title">KICKS</div>
+                <div class="grid-2 stagger-anim" id="kicks-grid">
+                    <!-- Populated by JS -->
+                </div>
+
+                <!-- Defense -->
+                <div class="section-title">MOVEMENT & DEFENSE</div>
+                <div class="grid-2 stagger-anim" id="defense-grid">
+                    <!-- Populated by JS -->
+                </div>
+
+            </div>
+        </div>
+
+        <nav class="main-nav">
+            <a href="dashboard.html" class="nav-link">
+                <i class="fa-solid fa-house"></i>
+                <span>HOME</span>
+            </a>
+            <a href="analytics.html" class="nav-link">
+                <i class="fa-solid fa-chart-column"></i>
+                <span>ANALYSIS</span>
+            </a>
+            <a href="guru.html" class="nav-link active">
+                <i class="fa-solid fa-robot"></i>
+                <span>GURU</span>
+            </a>
+
+            <a href="vision-analyser.html" class="nav-hex-wrap" style="text-decoration: none;">
+                <div class="streak-badge">
+                    <i class="fa-solid fa-fire"></i>
+                    <span>0</span>
+                </div>
+                <div class="nav-hex">
+                    <i class="fa-solid fa-play"></i>
+                </div>
+                <span class="nav-hex-label">VIDEO</span>
+            </a>
+
+            <a href="reflex-enhancer.html" class="nav-link">
+                <i class="fa-solid fa-bolt"></i>
+                <span>REFLEX</span>
+            </a>
+            <a href="planner.html" class="nav-link">
+                <i class="fa-solid fa-calendar-check"></i>
+                <span>PLANNER</span>
+            </a>
+            <a href="settings.html" class="nav-link">
+                <i class="fa-solid fa-user"></i>
+                <span>PROFILE</span>
+            </a>
+        </nav>
+    </div>
+
+
+
+    <script src="user-profile.js"></script>
+    <script src="techniques-data.js"></script>
+    <script>
+        function renderGrid(id, items, category) {
+            const container = document.getElementById(id);
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (!items) return;
+
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'tech-card ripple hover-scale';
+                div.onclick = () => {
+                    window.location.href = `technical-detail.html?id=${item.id}&cat=${category}`;
+                };
+
+                div.innerHTML = `
+                    ${item.isAiPick ? '<div class="ai-pick-badge">AI PICK</div>' : ''}
+                    <div class="tech-image-area">
+                        <img src="${item.image}" alt="${item.name}">
+                    </div>
+                    <div class="tech-name">${item.name}</div>
+                    <div class="eff-bar-track">
+                        <div class="eff-bar-fill" style="width: ${item.score}%"></div>
+                    </div>
+                    <div class="eff-label">EFFECTIVENESS: ${item.score}%</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof techniquesData !== 'undefined') {
+                // Counts
+                let totalCount = 0;
+                let totalScore = 0;
+
+                // Render Grids & Calc Stats
+                ['stances', 'punches', 'kicks', 'defense'].forEach(cat => {
+                    const catItems = techniquesData[cat];
+                    if (catItems) {
+                        totalCount += catItems.length;
+                        catItems.forEach(i => totalScore += i.score);
+
+                        let catLabel = cat.toUpperCase();
+                        if (catLabel === 'PUNCHES') catLabel = 'PUNCH';
+                        if (catLabel === 'STANCES') catLabel = 'STANCE';
+                        if (catLabel === 'KICKS') catLabel = 'KICK';
+
+                        renderGrid(cat + '-grid', catItems, catLabel);
+                    }
+                });
+
+                // Update Header Stats
+                document.getElementById('total-skills-count').innerText = totalCount;
+
+                // Calculate Average Mastery
+                const avgMastery = totalCount > 0 ? Math.round(totalScore / totalCount) : 0;
+
+                document.getElementById('mastery-percent-text').innerText = avgMastery + "%";
+                document.getElementById('mastery-growth').innerText = "+2% This Week"; // Mock growth
+
+                // Animate Circle
+                // stroke-dasharray="current, 100"
+                // map 0-100 to 0-100 (since path length is roughly 100 due to radius ~15.9155 * 2 * PI = 100)
+                setTimeout(() => {
+                    const circle = document.getElementById('mastery-circle-path');
+                    if (circle) {
+                        circle.style.strokeDasharray = `${avgMastery}, 100`;
+                    }
+                }, 100);
+
+                // Populate Nav Streak
+                StreakManager.updateBadges();
+
+            } else {
+                console.error("techniquesData not found.");
+            }
+        });
+    </script>
+</body>
+
+</html>

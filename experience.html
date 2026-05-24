@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Experience - AI Boxing Guru</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="onboarding-body-lock onboarding-layout">
+    <div class="app-container dashboard-bg">
+        <div class="onboarding-content">
+            <div class="page animate-fade anim-slide-right"
+                style="padding: 0; min-height: auto; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                <header class="header animate-slide-up hover-scale" style="text-align: left; margin-bottom: 20px;">
+                    <div
+                        style="font-size: 0.8rem; font-weight: 800; letter-spacing: 4px; color: var(--primary); margin-bottom: 12px; text-transform: uppercase;">
+                        ONBOARDING 04/10</div>
+                    <h1 style="font-size: 2.8rem; font-weight: 700; line-height: 1.1; color: var(--text);">What is your
+                        <br><span class="text-neon" style="font-style: italic;">Training Level?</span>
+                    </h1>
+                    <p style="color: var(--text-muted); margin-top: 15px; font-size: 0.95rem; line-height: 1.4;">This
+                        determines the complexity of the combinations.</p>
+                </header>
+
+                <main class="animate-slide-up hover-scale"
+                    style="animation-delay: 0.1s; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 15px;">
+                    <div class="rank-list" style="display: flex; flex-direction: column; gap: 12px;">
+                        <div class="glass-card rank-card" onclick="selectRank(this, 'Novice')"
+                            style="padding: 18px !important;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <h2
+                                        style="font-style: italic; font-weight: 900; font-size: 1.5rem; line-height: 1;">
+                                        NOVICE</h2>
+                                    <p style="color: var(--text-muted); font-size: 0.7rem; margin-top: 4px;">Starting
+                                        from zero. Basic mechanics.</p>
+                                </div>
+                                <div class="rank-num">01</div>
+                            </div>
+                        </div>
+
+                        <div class="glass-card rank-card" onclick="selectRank(this, 'Amateur')"
+                            style="padding: 18px !important;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <h2
+                                        style="font-style: italic; font-weight: 900; font-size: 1.5rem; line-height: 1;">
+                                        AMATEUR</h2>
+                                    <p style="color: var(--text-muted); font-size: 0.7rem; margin-top: 4px;">I know the
+                                        fundamentals. Active fighter.</p>
+                                </div>
+                                <div class="rank-num">02</div>
+                            </div>
+                        </div>
+
+                        <div class="glass-card rank-card" onclick="selectRank(this, 'Pro')"
+                            style="padding: 18px !important;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <h2
+                                        style="font-style: italic; font-weight: 900; font-size: 1.5rem; line-height: 1;">
+                                        PRO</h2>
+                                    <p style="color: var(--text-muted); font-size: 0.7rem; margin-top: 4px;">High
+                                        technical ability. Competition level.</p>
+                                </div>
+                                <div class="rank-num">03</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 25px; text-align: center;">
+                        <button class="btn-primary hover-scale" id="next-btn"
+                            style="width: 100%; height: 75px; font-size: 1.2rem; border-radius: 100px;">
+                            LOCK IN RANK <i class="fa-solid fa-arrow-right" style="margin-left: 10px;"></i>
+                        </button>
+                        <a href="goals.html"
+                            style="display: block; text-decoration: none; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 2px; font-size: 0.65rem; margin-top: 15px;">BACK</a>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .rank-card {
+            border: 2px solid transparent !important;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .rank-num {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 0.8rem;
+        }
+
+        .rank-card.selected {
+            border-color: var(--primary) !important;
+            background: rgba(var(--primary-rgb), 0.05) !important;
+            box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.2);
+            transform: scale(1.02);
+        }
+
+        .rank-card.selected h2 {
+            color: var(--primary);
+        }
+
+        .rank-card.selected .rank-num {
+            border-color: var(--primary) !important;
+            background: var(--primary) !important;
+            color: #000 !important;
+        }
+    </style>
+
+    <script type="module">
+        let selectedRank = null;
+        window.selectRank = function (el, rank) {
+            document.querySelectorAll('.rank-card').forEach(card => card.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedRank = rank;
+        };
+        const nextBtn = document.getElementById('next-btn');
+        nextBtn.onclick = function () {
+            if (!selectedRank) { alert('Fighter, announce your status.'); return; }
+            const data = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
+            data.experience_level = selectedRank;
+            localStorage.setItem('boxing_onboarding_data', JSON.stringify(data));
+            window.location.href = 'time.html';
+        };
+    </script>
+</body>
+
+</html>
