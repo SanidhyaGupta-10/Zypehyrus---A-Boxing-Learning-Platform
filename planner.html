@@ -8,9 +8,7 @@
     <title>Weekly Roadmap - AI Boxing Protocol</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="streak-manager.js"></script>
-    <script src="notification-manager.js"></script>
-    <script src="sound-effects.js"></script>
+    <script src="onboarding-utils.js"></script>
     <style>
         :root {
             --neon: #E2FF3B;
@@ -153,6 +151,39 @@
 
         .cal-item.active .cal-day-name {
             color: #000;
+        }
+
+        .cal-day-type {
+            display: block;
+            font-size: 0.45rem;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+            opacity: 0.75;
+            line-height: 1.1;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cal-item.active .cal-day-type {
+            color: #000;
+            opacity: 0.85;
+        }
+
+        .card-day-tag {
+            font-size: 0.55rem;
+            font-weight: 900;
+            color: var(--primary);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .card-exercises {
+            font-size: 0.65rem;
+            color: #888;
+            line-height: 1.4;
+            max-width: 220px;
         }
 
         /* Protocol Sections */
@@ -445,7 +476,6 @@
             padding: 40px;
         }
     </style>
-    <script src="sound-effects.js"></script>
 </head>
 
 <body>
@@ -464,18 +494,31 @@
                 </div>
             </div>
 
-            <div id="onboarding-prompt" class="onboarding-gate">
+            <div id="onboarding-prompt" class="onboarding-gate" style="display: none;">
                 <i class="fa-solid fa-lock"
                     style="font-size: 4rem; color: var(--neon); margin-bottom: 30px; opacity: 0.5;"></i>
                 <h2
                     style="font-size: 2.2rem; font-weight: 950; font-style: italic; text-transform: uppercase; line-height: 1; margin-bottom: 20px;">
                     Identity Required</h2>
-                <p style="color: var(--zinc-500); font-size: 1rem; max-width: 300px; margin-bottom: 45px;">The engine
-                    cannot
-                    calculate your protocol without bio-metrics and strategic intent.</p>
+                <p style="color: var(--zinc-500); font-size: 1rem; max-width: 300px; margin-bottom: 45px;">Complete fighter
+                    onboarding before the planner can calculate your protocol.</p>
                 <button onclick="location.href='index.html'" class="btn-primary hover-scale ripple"
                     style="width: 100%; max-width: 320px; height: 80px; font-size: 1.3rem; border-radius: 100px; background: var(--neon); color: #000; border: none; font-weight: 950; text-transform: uppercase; cursor: pointer;">
                     START ONBOARDING <i class="fa-solid fa-arrow-right" style="margin-left: 10px;"></i>
+                </button>
+            </div>
+
+            <div id="onboarding-planner-setup" class="onboarding-gate" style="display: none;">
+                <i class="fa-solid fa-calendar-days"
+                    style="font-size: 4rem; color: var(--neon); margin-bottom: 30px; opacity: 0.5;"></i>
+                <h2
+                    style="font-size: 2.2rem; font-weight: 950; font-style: italic; text-transform: uppercase; line-height: 1; margin-bottom: 20px;">
+                    Planner Setup</h2>
+                <p style="color: var(--zinc-500); font-size: 1rem; max-width: 300px; margin-bottom: 45px;">Sync your peak
+                    window and session start time before generating your roadmap.</p>
+                <button onclick="location.href='planner-config.html'" class="btn-primary hover-scale ripple"
+                    style="width: 100%; max-width: 320px; height: 80px; font-size: 1.3rem; border-radius: 100px; background: var(--neon); color: #000; border: none; font-weight: 950; text-transform: uppercase; cursor: pointer;">
+                    CONFIGURE PLANNER <i class="fa-solid fa-arrow-right" style="margin-left: 10px;"></i>
                 </button>
             </div>
 
@@ -518,383 +561,12 @@
                 </a>
             </nav>
 
-            <script src="user-profile.js"></script>
-            <script type="module">
-                const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-                const mount = document.getElementById('planner-mount');
-                const onboardingPrompt = document.getElementById('onboarding-prompt');
-
-                async function init() {
-                    const data = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
-
-                    // Populate Nav Streak
-                    // Populate Nav Streak
-                    StreakManager.updateBadges();
-
-                    if (!data.user_metrics) {
-                        mount.style.display = 'none';
-                        onboardingPrompt.style.display = 'flex';
-                        return;
-                    }
-
-                    // Strict redirect for Planner Configuration if missing
-                    if (!data.planner_config) {
-                        window.location.replace('planner-config.html');
-                        return;
-                    }
-
-                    // Check if we already have a generated plan for today (v2 with strict dates)
-                    const storedPlan = localStorage.getItem('active_boxing_plan_v2');
-                    const lastGen = localStorage.getItem('last_plan_gen_date_v2');
-                    const today = new Date().toDateString();
-
-                    if (storedPlan && lastGen === today) {
-                        renderPlan(JSON.parse(storedPlan));
-                    } else {
-                        await generatePlan(data, today);
-                    }
-                }
-
-                async function generatePlan(userData, todayDateStr) {
-                    const systemPrompt = `You are the Synthetic Combat Intelligence. Generate a high-performance 7-day training roadmap in JSON format.
-            RETURN ONLY THE JSON OBJECT. NO MARKDOWN.
-            
-            STRUCTURE:
-            {
-              "week_range": "DATE RANGE (e.g. OCT 23 - 29)",
-              "intensity_score": 84,
-              "days": [
-                {
-                  "day_name": "MON",
-                  "date": "23",
-                  "intensity": 65,
-                  "protocol": [
-                    { "time": "06:00 AM", "duration": "45 MIN", "title": "HEAVY BAG: POWER DRILLS", "impact": "Aerial: POWER" },
-                    { "time": "11:30 AM", "duration": "30 MIN", "title": "REFLEX BALL TRAINING", "impact": "Aerial: SPEED" }
-                  ],
-                  "recovery": "Active Mobility & Foam Roll"
-                }
-              ]
-            }
-            
-            RULES:
-            1. Scale "protocol" array length based on available_time: <30 = 1-2 items, 30-60 = 2-3 items, 60+ = 3-4 items.
-            2. Map exercises to primary_goal: ${userData.primary_goal}.
-            3. Respect preferred_time: ${userData.planner_config?.preferred_time || '07:30'} for the first session each day.
-            4. Align primary training blocks with peak_window: ${userData.planner_config?.peak_window || 'MORNING'}.
-            5. Ensure "impact" tags match the goal.
-            6. Use Cyber-Athletic terminology.`;
-
-                    const currentDateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                    const userPrompt = `Generate roadmap for: ${JSON.stringify(userData)}. The current real-world date today is: ${currentDateStr}. Ensure the 7-day roadmap starts from this actual date ("date" array field should be the day of the month, like "23") and follows the correct day sequence.`;
-
-                    try {
-                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                contents: [{ parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }],
-                                generationConfig: { temperature: 1.0 }
-                            })
-                        });
-
-                        if (response.status === 429) {
-                            throw new Error("Neural Capacity Reached. Please wait a moment for the uplink to stabilize.");
-                        }
-
-                        if (!response.ok) {
-                            const errorText = await response.text();
-                            console.error("API Response Error:", response.status, errorText);
-                            throw new Error(`API Error: ${response.status}`);
-                        }
-
-                        const resJson = await response.json();
-                        console.log("Full API Response:", resJson);
-
-                        if (!resJson.candidates || resJson.candidates.length === 0) {
-                            throw new Error("No candidates returned from API. Check safety settings or quota.");
-                        }
-
-                        let text = resJson.candidates[0].content.parts[0].text;
-
-                        // Robust JSON Extraction: Find first '{' and last '}'
-                        const firstBrace = text.indexOf('{');
-                        const lastBrace = text.lastIndexOf('}');
-                        if (firstBrace === -1 || lastBrace === -1) {
-                            throw new Error("No valid JSON found in AI response.");
-                        }
-                        text = text.substring(firstBrace, lastBrace + 1);
-
-                        const plan = JSON.parse(text);
-
-                        localStorage.setItem('active_boxing_plan_v2', JSON.stringify(plan));
-                        localStorage.setItem('last_plan_gen_date_v2', todayDateStr);
-                        if (!localStorage.getItem('last_plan_gen_timestamp')) {
-                            localStorage.setItem('last_plan_gen_timestamp', Date.now());
-                        }
-
-                        AppSounds.play('success');
-                        renderPlan(plan);
-                    } catch (error) {
-                        console.error("Plan Generation Error:", error);
-                        AppSounds.play('error');
-                        mount.innerHTML = `
-                    <div style="padding: 100px 40px; text-align: center; color: #ff4444;">
-                        <i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; margin-bottom: 20px;"></i>
-                        <h2 style="font-weight: 900; text-transform: uppercase;">Link Failure</h2>
-                        <p style="font-size: 0.8rem; color: var(--zinc-500); margin-top: 10px;">${error.message}</p>
-                        <button onclick="location.reload()" class="btn-primary hover-scale ripple" style="margin-top: 30px; height: 50px; padding: 0 20px; font-size: 0.8rem;">RETRY UPLINK</button>
-                    </div>
-                `;
-                    }
-                }
-
-                function renderPlan(plan) {
-                    const currentDayIndex = 0; // Default to first day for now
-                    const dayData = plan.days[currentDayIndex];
-
-                    mount.innerHTML = `
-                <header class="roadmap-header">
-                    <div class="header-left">
-                        <i class="fa-solid fa-bolt bolt-icon"></i>
-                        <div class="header-title">STRATEGY DEPLOYED</div>
-                    </div>
-                    <div class="notification-bell">
-                        <i class="fa-solid fa-bell"></i>
-                    </div>
-                </header>
-
-                <div class="roadmap-summary">
-                    <div class="performance-track">PERFORMANCE TRACK</div>
-                    <div class="weekly-title-row">
-                        <h1 class="weekly-title">WEEKLY ROADMAP</h1>
-                        <span class="date-range">${plan.week_range}</span>
-                    </div>
-
-                    <div class="calendar-strip">
-                        ${plan.days.map((day, i) => `
-                            <div class="cal-item ${i === currentDayIndex ? 'active' : ''}" onclick="window.switchDay(${i})">
-                                <span class="cal-day-name">${day.day_name}</span>
-                                <span class="cal-date">${day.date}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-
-                <div class="section-label">TODAY'S PROTOCOL</div>
-                
-                <div class="protocol-list">
-                    ${dayData.protocol.map((p, i) => `
-                        <div class="protocol-card ${i === 0 ? 'active' : ''}">
-                            <div class="card-left">
-                                <div class="card-meta">${p.time} • ${p.duration}</div>
-                                <div class="card-title">${p.title}</div>
-                                <div class="card-badge">${p.impact}</div>
-                            </div>
-                            <div class="play-btn ${i === 0 ? 'active' : ''}">
-                                <i class="fa-solid fa-play"></i>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-
-                <div class="recovery-pillar">
-                    <div class="recovery-content">
-                        <div class="recovery-label">RECOVERY PILLAR</div>
-                        <div class="recovery-text">${dayData.recovery}</div>
-                    </div>
-                    <i class="fa-solid fa-moon recovery-icon"></i>
-                </div>
-
-                <div class="intensity-section">
-                    <div class="intensity-header">
-                        <div class="intensity-label">WEEKLY INTENSITY</div>
-                        <div class="intensity-val">${plan.intensity_score}%</div>
-                    </div>
-                    <div class="chart-container">
-                        ${plan.days.map((day, i) => `
-                            <div class="bar ${i === currentDayIndex ? 'active' : ''}" style="height: ${day.intensity}%"></div>
-                        `).join('')}
-                    </div>
-                    <button class="reset-btn" onclick="window.resetPlan()">
-                        <i class="fa-solid fa-rotate-right"></i>
-                        <span>RESET</span>
-                    </button>
-                </div>
-            `;
-                }
-
-                window.switchDay = (index) => {
-                    const plan = JSON.parse(localStorage.getItem('active_boxing_plan_v2'));
-                    renderPlanByDay(plan, index);
-                };
-
-                function renderPlanByDay(plan, dayIndex) {
-                    const dayData = plan.days[dayIndex];
-                    renderPlan({ ...plan, activeDay: dayIndex });
-                    // Simplified: we'll just re-render and use a closure or global state
-                }
-
-                // Overwrite renderPlan to handle index properly
-                let activeIdx = 0;
-                const baseRender = renderPlan;
-                window.switchDay = (idx) => {
-                    activeIdx = idx;
-                    const plan = JSON.parse(localStorage.getItem('active_boxing_plan_v2'));
-                    renderPlan(plan);
-                };
-
-                // Redefine renderPlan to use activeIdx
-                function renderPlanWithIndex(plan) {
-                    const dayData = plan.days[activeIdx];
-                    const todayKey = new Date().toDateString();
-                    const deployed = JSON.parse(localStorage.getItem('deployed_planner_drills_' + todayKey) || '[]');
-
-                    mount.innerHTML = `
-                <div class="animate-fade anim-slide-right">
-                    <header class="roadmap-header">
-                        <div class="header-left">
-                            <i class="fa-solid fa-bolt bolt-icon"></i>
-                            <div class="header-title">STRATEGY DEPLOYED</div>
-                        </div>
-                        <div class="notification-bell">
-                            <i class="fa-solid fa-bell"></i>
-                        </div>
-                    </header>
-                </div>
-
-                <div class="roadmap-summary animate-slide-up hover-scale" style="animation-delay: 0.1s; animation-fill-mode: both;">
-                    <div class="performance-track">PERFORMANCE TRACK</div>
-                    <div class="weekly-title-row">
-                        <h1 class="weekly-title">WEEKLY ROADMAP</h1>
-                        <span class="date-range">${plan.week_range}</span>
-                    </div>
-
-                    <div class="calendar-strip">
-                        ${plan.days.map((day, i) => `
-                            <div class="cal-item ${i === activeIdx ? 'active animate-pulse' : 'hover-scale ripple'}" onclick="window.switchDay(${i})" style="transition: all 0.3s;">
-                                <span class="cal-day-name">${day.day_name}</span>
-                                <span class="cal-date">${day.date}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-
-                <div class="section-label animate-fade anim-slide-right" style="animation-delay: 0.2s; animation-fill-mode: both;">TODAY'S PROTOCOL</div>
-                
-                <div class="protocol-list stagger-anim" style="animation-delay: 0.3s;">
-                    ${dayData.protocol.map((p, i) => {
-                        const isDeployed = deployed.some(d => d.title === p.title);
-                        return `
-                        <div class="protocol-card hover-scale ripple ${i === 0 ? 'active' : ''} ${isDeployed ? 'deployed' : ''}" 
-                             onclick="window.location.href='protocol-start.html?day=${activeIdx}&p=${i}'" style="animation-fill-mode: both;">
-                            <div class="card-left">
-                                <div class="card-meta">${p.time} • ${p.duration}</div>
-                                <div class="card-title">${p.title}</div>
-                                <div class="card-badge" style="${isDeployed ? 'background: var(--neon); color: #000; border: none;' : ''}">
-                                    ${isDeployed ? '<i class="fa-solid fa-check-double"></i> DEPLOYED' : p.impact}
-                                </div>
-                            </div>
-                            <div class="play-btn ${i === 0 && !isDeployed ? 'active' : ''}" style="${isDeployed ? 'background: rgba(226, 255, 59, 0.1); color: var(--neon);' : ''}">
-                                <i class="fa-solid ${isDeployed ? 'fa-check' : 'fa-play'}"></i>
-                            </div>
-                        </div>
-                        `;
-                    }).join('')}
-                </div>
-
-                <div class="recovery-pillar animate-slide-up hover-scale" style="animation-delay: 0.4s; animation-fill-mode: both;">
-                    <div class="recovery-content">
-                        <div class="recovery-label">RECOVERY PILLAR</div>
-                        <div class="recovery-text">${dayData.recovery}</div>
-                    </div>
-                    <i class="fa-solid fa-moon recovery-icon"></i>
-                </div>
-
-                <div class="intensity-section animate-slide-up hover-scale" style="animation-delay: 0.5s; animation-fill-mode: both;">
-                    <div class="intensity-header">
-                        <div class="intensity-label">WEEKLY INTENSITY</div>
-                        <div class="intensity-val">${plan.intensity_score}%</div>
-                    </div>
-                    <div class="chart-container">
-                        ${plan.days.map((day, i) => `
-                            <div class="bar ${i === activeIdx ? 'active' : ''}" style="height: ${day.intensity}%; transition: height 1s cubic-bezier(0.4, 0, 0.2, 1) ${0.5 + (i * 0.1)}s;"></div>
-                        `).join('')}
-                    </div>
-                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px; position: absolute; bottom: 20px; right: 20px;">
-                        <button type="button" class="reset-btn hover-scale" onclick="window.regenerateRoadmap()" id="regen-btn" style="position: static; width: auto; height: auto; padding: 12px 24px; border-radius: 12px; font-size: 0.75rem;">
-                            <i class="fa-solid fa-sync"></i>
-                            <span>REGENERATE</span>
-                        </button>
-                        <div id="regen-timer" style="font-size: 0.55rem; font-weight: 900; color: var(--primary); letter-spacing: 1.5px; text-transform: uppercase;"></div>
-                    </div>
-                </div>
-            `;
-                }
-
-                // Final function assignment
-                const originalRender = renderPlan;
-                renderPlan = renderPlanWithIndex;
-
-                window.regenerateRoadmap = function () {
-                    const lastGen = localStorage.getItem('last_plan_gen_timestamp');
-                    const now = Date.now();
-                    const cooldown = 3 * 24 * 60 * 60 * 1000;
-
-                    if (lastGen && (now - lastGen < cooldown)) {
-                        const remaining = cooldown - (now - lastGen);
-                        const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
-                        const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-                        alert(`Neural Link Cooldown: ${days}d ${hours}h remaining before next generation.`);
-                        return;
-                    }
-
-                    if (confirm("Initiate AI Regeneration? All current progress will be archived.")) {
-                        localStorage.removeItem('active_boxing_plan_v2');
-                        localStorage.removeItem('last_plan_gen_date_v2');
-                        localStorage.setItem('last_plan_gen_timestamp', Date.now()); // Reset timestamp on intention
-                        location.reload();
-                    }
-                };
-
-                window.resetEngine = function () {
-                    if (confirm("DANGER: This will wipe your bio-metrics and roadmap. Re-start onboarding?")) {
-                        localStorage.clear();
-                        window.location.assign('index.html');
-                    }
-                };
-
-                // Add indicator to the button
-                function updateRegenButton() {
-                    const btn = document.getElementById('regen-btn');
-                    const timer = document.getElementById('regen-timer');
-                    if (!btn || !timer) return;
-
-                    const lastGen = localStorage.getItem('last_plan_gen_timestamp');
-                    const now = Date.now();
-                    const cooldown = 3 * 24 * 60 * 60 * 1000;
-
-                    if (lastGen && (now - lastGen < cooldown)) {
-                        const remaining = cooldown - (now - lastGen);
-                        const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
-                        const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-                        btn.style.opacity = "0.5";
-                        timer.innerText = `NEXT SYNC: ${days}D ${hours}H`;
-                    } else {
-                        timer.innerText = "LINK READY";
-                        timer.style.opacity = "0.3";
-                    }
-                }
-
-                // Call update button after a short delay to ensure DOM is ready
-                setTimeout(updateRegenButton, 100);
-
-                // Start
-                init();
-            </script>
+            <script src="planner-plan-builder.js"></script>
+            <script src="planner-gemini.js"></script>
+            <script src="protocol-session-utils.js"></script>
+            <script type="module" src="./planner.js"></script>
         </div>
     </div>
-    <script src="user-profile.js"></script>
 </body>
 
 </html>

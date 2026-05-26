@@ -296,7 +296,7 @@
     <!-- Supabase -->
     <script type="module">
         import { db } from './auth.js';
-        import { StreakManager } from './streak-manager.js';
+        const { StreakManager } = window;
 
         window.showTab = function (tabId) {
             document.querySelectorAll('.lb-section').forEach(s => s.classList.remove('active'));

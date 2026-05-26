@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Gear - AI Boxing Guru</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script type="module" crossorigin src="/assets/constraints-DLAXGzA0.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+  <link rel="stylesheet" crossorigin href="/assets/style-Dx3LiayG.css">
+</head>
+
+<body class="onboarding-body-lock onboarding-layout">
+    <div class="app-container dashboard-bg">
+        <div class="onboarding-content">
+            <div class="page animate-fade anim-slide-right"
+                style="padding: 0; min-height: auto; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                <header class="header" style="text-align: left; margin-bottom: 20px;">
+                    <div
+                        style="font-size: 0.8rem; font-weight: 800; letter-spacing: 4px; color: var(--primary); margin-bottom: 12px; text-transform: uppercase;">
+                        ONBOARDING 06/10</div>
+                    <h1 style="font-size: 2.8rem; font-weight: 700; line-height: 1.1; color: var(--text);">Battle
+                        <br><span class="text-neon" style="font-style: italic;">Gear Check</span>
+                    </h1>
+                    <p style="color: var(--text-muted); margin-top: 15px; font-size: 0.95rem; line-height: 1.4;">
+                        Identify your available equipment to customize drills.</p>
+                </header>
+
+                <main
+                    style="animation-delay: 0.1s; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                    <div style="margin-bottom: 30px;">
+                        <label
+                            style="display: block; color: var(--primary); font-size: 0.7rem; font-weight: 950; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 15px;">EQUIPMENT
+                            STATUS</label>
+                        <div class="chip-grid">
+                            <div class="glass-chip" onclick="toggleChip(this, 'Heavy Bag')">HEAVY BAG</div>
+                            <div class="glass-chip" onclick="toggleChip(this, 'Jump Rope')">JUMP ROPE</div>
+                            <div class="glass-chip" onclick="toggleChip(this, 'Dumbbells')">DUMBBELLS</div>
+                            <div class="glass-chip" onclick="toggleChip(this, 'Speed Bag')">SPEED BAG</div>
+                            <div class="glass-chip" onclick="toggleChip(this, 'Hand Wraps')">HAND WRAPS</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 30px;">
+                        <label
+                            style="display: block; color: var(--primary); font-size: 0.7rem; font-weight: 950; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 15px;">ANY
+                            INJURIES?</label>
+                        <input type="text" id="injuries" class="underline-input" placeholder="E.G., WRIST PAIN..."
+                            autocomplete="off" style="font-size: 1.2rem;">
+                    </div>
+                </main>
+
+                <footer style="margin-top: 30px; text-align: center;">
+                    <button class="btn-primary hover-scale" id="next-btn"
+                        style="width: 100%; height: 75px; font-size: 1.2rem; border-radius: 100px;">
+                        Gear Verified <i class="fa-solid fa-check" style="margin-left: 10px;"></i>
+                    </button>
+                    <a href="time.html"
+                        style="display: block; text-decoration: none; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 2px; font-size: 0.65rem; margin-top: 15px;">BACK</a>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .chip-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .glass-chip {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 20px;
+            border-radius: 50px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: 0.2s;
+            color: var(--text-muted);
+        }
+
+        .glass-chip.selected {
+            background: var(--primary);
+            color: #000;
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.3);
+        }
+    </style>
+
+</body>
+
+</html>

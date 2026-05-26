@@ -39,6 +39,62 @@ app.post('/api/analyze-session', async (req: Request, res: Response) => {
     }
 });
 
+// Endpoint to generate Training Roadmap/Plan
+app.post('/api/generate-plan', async (req: Request, res: Response) => {
+    try {
+        const { userData } = req.body;
+
+        if (!userData) {
+            return res.status(400).json({ error: 'User onboarding data is required.' });
+        }
+
+        console.log('Generating plan for user:', userData);
+
+        // Mock response to act as a proper backend proxy fallback
+        const start = new Date();
+        const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+        const preferred = userData.planner_config?.preferred_time || '07:30';
+        const goal = userData.primary_goal || 'Aerial';
+
+        const mockPlan = {
+            week_range: `${start.toLocaleString('en-US', { month: 'short' }).toUpperCase()} ${start.getDate()} - ${start.getDate() + 6}`,
+            intensity_score: 82,
+            days: dayNames.map((day_name, i) => {
+                const d = new Date(start);
+                d.setDate(start.getDate() + i);
+                return {
+                    day_name,
+                    date: String(d.getDate()),
+                    intensity: 60 + i * 3,
+                    protocol: [
+                        {
+                            time: preferred,
+                            duration: '45 MIN',
+                            title: `${goal.toUpperCase()} FOCUS DRILLS`,
+                            impact: `${goal}: POWER`,
+                        },
+                        {
+                            time: '05:00 PM',
+                            duration: '30 MIN',
+                            title: 'SHADOWBOXING SPEED',
+                            impact: 'Speed/Reflexes',
+                        }
+                    ],
+                    recovery: 'Active mobility & foam roll',
+                };
+            }),
+        };
+
+        res.json({
+            status: 'success',
+            plan: mockPlan
+        });
+    } catch (error) {
+        console.error('Gemini Plan Generation Proxy Error:', error);
+        res.status(500).json({ error: 'Internal AI processing error' });
+    }
+});
+
 app.get('/health', (req, res) => {
     res.json({ status: 'healthy' });
 });

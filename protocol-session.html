@@ -165,6 +165,58 @@
             text-decoration: none;
             text-transform: uppercase;
         }
+
+        .protocol-complete-banner {
+            display: none;
+            margin: 0 24px 20px;
+            padding: 20px;
+            border-radius: 20px;
+            background: rgba(var(--primary-rgb), 0.12);
+            border: 1px solid rgba(var(--primary-rgb), 0.35);
+            text-align: center;
+        }
+
+        .protocol-complete-banner.visible {
+            display: block;
+        }
+
+        .protocol-complete-banner h3 {
+            margin: 0 0 8px;
+            font-size: 0.9rem;
+            font-weight: 950;
+            color: var(--primary);
+            text-transform: uppercase;
+        }
+
+        .protocol-complete-banner p {
+            margin: 0;
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+
+        .start-protocol-btn {
+            display: block;
+            width: calc(100% - 48px);
+            margin: 0 24px 20px;
+            padding: 18px;
+            border: none;
+            border-radius: 100px;
+            background: var(--primary);
+            color: #000;
+            font-weight: 950;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 0 24px rgba(var(--primary-rgb), 0.35);
+        }
+
+        .hud-percent-label {
+            font-size: 0.55rem;
+            color: var(--zinc-500);
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
     </style>
 </head>
 
@@ -185,11 +237,18 @@
                         <div class="hud-track">
                             <div class="hud-fill" id="p-fill"></div>
                         </div>
-                        <div style="font-size: 0.6rem; color: var(--zinc-500); font-weight: 900; letter-spacing: 1px;">
-                            COMPLETED
-                        </div>
+                        <div class="hud-percent-label" id="p-progress-label">DRILLS DONE</div>
                     </div>
                 </div>
+
+                <div class="protocol-complete-banner" id="complete-banner">
+                    <h3><i class="fa-solid fa-check-double"></i> BLOCK COMPLETE</h3>
+                    <p>All exercises finished. This protocol is logged to your grind.</p>
+                </div>
+
+                <button type="button" class="start-protocol-btn ripple" id="start-protocol-btn" style="display: none;">
+                    <i class="fa-solid fa-play"></i> START BLOCK
+                </button>
 
                 <div class="protocol-list-container" id="drill-list">
                     <!-- Drills injected here -->
@@ -199,64 +258,92 @@
                 <a href="planner.html" class="abandon-btn">ABORT PROTOCOL</a>
             </div>
 
+            <script src="protocol-session-utils.js"></script>
             <script>
                 document.addEventListener('DOMContentLoaded', () => {
                     const params = new URLSearchParams(window.location.search);
                     const dayIdx = params.get('day');
                     const pIdx = params.get('p');
-                    const plan = JSON.parse(localStorage.getItem('active_boxing_plan_v2'));
+                    const PS = window.ProtocolSession;
+                    const plan = JSON.parse(localStorage.getItem('active_boxing_plan_v2') || 'null');
 
-                    if (plan && dayIdx !== null && pIdx !== null) {
-                        const protocolData = plan.days[dayIdx].protocol[pIdx];
-                        document.getElementById('p-title').innerHTML = protocolData.title.replace(': ', '<br>');
+                    if (!plan || dayIdx === null || pIdx === null || !PS) {
+                        document.getElementById('p-title').innerText = 'ERROR: NO DATA';
+                        return;
+                    }
 
-                        // Generate drills for the protocol session
-                        const drills = [
-                            { name: "Dynamic Shadowboxing", duration: 180, type: 'timer', instruction: "Prepare your neural pathways." },
-                            { name: protocolData.title, duration: 300, type: 'timer', instruction: "Execute the core strategic protocol." },
-                            { name: "Technical Application", duration: 240, type: 'timer', instruction: "Refine form under fatigue." },
-                            { name: "Post-Protocol Stretch", duration: 120, type: 'timer', instruction: "Restore muscle length." }
-                        ];
+                    const protocolData = plan.days[dayIdx].protocol[pIdx];
+                    const drills = PS.cacheDrills(dayIdx, pIdx);
+                    const completedIndices = PS.getCompletedIndices(dayIdx, pIdx);
+                    const allComplete = PS.isProtocolFullyComplete(dayIdx, pIdx);
 
-                        const list = document.getElementById('drill-list');
-                        list.innerHTML = '';
+                    if (params.get('finished') === '1' && completedIndices.length >= drills.length) {
+                        PS.markProtocolFullyComplete(dayIdx, pIdx);
+                    }
 
-                        const progressKey = `workout_progress_protocol_${dayIdx}_${pIdx}`;
-                        const completedIndices = JSON.parse(localStorage.getItem(progressKey) || '[]');
-                        let completedCount = 0;
+                    const dayType = plan.days[dayIdx].day_type || protocolData.day_type || '';
+                    document.getElementById('p-title').innerHTML =
+                        (dayType ? `<span style="font-size:0.5em;color:var(--primary);">${dayType}</span><br>` : '') +
+                        protocolData.title.replace(': ', '<br>');
 
-                        drills.forEach((drill, index) => {
-                            const isComplete = completedIndices.includes(index);
-                            if (isComplete) completedCount++;
+                    const list = document.getElementById('drill-list');
+                    list.innerHTML = '';
 
-                            const div = document.createElement('div');
-                            div.className = `p-drill-card ripple hover-scale ${isComplete ? 'completed' : ''}`;
-                            div.onclick = () => {
-                                window.location.href = `session-timer.html?index=${index}&source=protocol&day=${dayIdx}&p=${pIdx}`;
-                            };
+                    let completedCount = 0;
 
-                            div.innerHTML = `
+                    drills.forEach((drill, index) => {
+                        const isComplete = completedIndices.includes(index);
+                        if (isComplete) completedCount++;
+
+                        const div = document.createElement('div');
+                        div.className = `p-drill-card ripple hover-scale ${isComplete ? 'completed' : ''}`;
+                        div.onclick = () => {
+                            window.location.href =
+                                `session-timer.html?index=${index}&source=protocol&day=${dayIdx}&p=${pIdx}&autostart=1`;
+                        };
+
+                        div.innerHTML = `
                         <div class="p-drill-status">
                             ${isComplete ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-bolt"></i>'}
                         </div>
                         <div class="p-drill-info">
                             <div class="p-drill-name">${drill.name}</div>
                             <div class="p-drill-meta">
-                                <i class="fa-regular fa-clock"></i> ${Math.floor(drill.duration / 60)} MIN ${drill.duration % 60 ? (drill.duration % 60) + ' SEC' : ''}
+                                <i class="fa-regular fa-clock"></i> ${drill.duration} SEC PER SET
                             </div>
                         </div>
-                        <i class="fa-solid fa-chevron-right" style="color: rgba(255,255,255,0.2); font-size: 0.8rem;"></i>
-                    `;
-                            list.appendChild(div);
-                        });
+                        <i class="fa-solid fa-chevron-right" style="color: rgba(255,255,255,0.2); font-size: 0.8rem;"></i>`;
+                        list.appendChild(div);
+                    });
 
-                        const percent = Math.round((completedCount / drills.length) * 100) || 0;
-                        document.getElementById('p-pct').innerText = `${percent}%`;
-                        setTimeout(() => {
-                            document.getElementById('p-fill').style.width = `${percent}%`;
-                        }, 100);
+                    let firstIncomplete = drills.findIndex((_, i) => !completedIndices.includes(i));
+                    if (firstIncomplete < 0) firstIncomplete = 0;
+
+                    const finalComplete = PS.isProtocolFullyComplete(dayIdx, pIdx);
+                    const percent = drills.length
+                        ? Math.round((completedCount / drills.length) * 100)
+                        : 0;
+
+                    document.getElementById('p-pct').innerText = `${completedCount}/${drills.length}`;
+                    document.getElementById('p-progress-label').innerText = finalComplete
+                        ? 'BLOCK COMPLETE'
+                        : 'DRILLS DONE';
+                    setTimeout(() => {
+                        document.getElementById('p-fill').style.width = `${percent}%`;
+                    }, 100);
+
+                    const banner = document.getElementById('complete-banner');
+                    const startBtn = document.getElementById('start-protocol-btn');
+                    if (finalComplete) {
+                        banner.classList.add('visible');
+                        startBtn.style.display = 'none';
                     } else {
-                        document.getElementById('p-title').innerText = "ERROR: NO DATA";
+                        banner.classList.remove('visible');
+                        startBtn.style.display = 'block';
+                        startBtn.onclick = () => {
+                            window.location.href =
+                                `session-timer.html?index=${firstIncomplete}&source=protocol&day=${dayIdx}&p=${pIdx}&autostart=1`;
+                        };
                     }
                 });
             </script>

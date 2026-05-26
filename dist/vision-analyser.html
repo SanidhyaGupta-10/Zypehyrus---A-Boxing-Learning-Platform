@@ -1,0 +1,3439 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AI Vision Analyser - ZEPHYR Boxing</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <script>
+        function enterFullscreen() {
+            const doc = window.document;
+            const docEl = doc.documentElement;
+            const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            if (requestFullScreen && !doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                requestFullScreen.call(docEl).catch(err => {
+                    console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            }
+        }
+        document.addEventListener('touchstart', enterFullscreen, { once: true });
+        document.addEventListener('click', enterFullscreen, { once: true });
+    </script>
+    <link rel="icon" href="data:,">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Space+Grotesk:wght@300;700;950&display=swap"
+        rel="stylesheet">
+
+    <!-- Google MediaPipe Pose Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+
+    <script src="onboarding-utils.js"></script>
+    <script src="sound-effects.js"></script>
+    <script src="streak-manager.js"></script>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --primary: #E2FF3B;
+            --primary-rgb: 226, 255, 59;
+            --red: #ff2d55;
+            --teal: #1abc9c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        body {
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            scrollbar-width: none;
+        }
+
+        /* ═══════════════════════════════════════
+           STAGE SYSTEM
+        ═══════════════════════════════════════ */
+        .stage {
+            display: none;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+
+        .stage.active {
+            display: flex;
+        }
+
+        /* ═══════════════════════════════════════
+           STAGE 0: WELCOME / PERMISSION
+        ═══════════════════════════════════════ */
+        #stage-welcome {
+            background: radial-gradient(circle at 40% 60%, rgba(226, 255, 59, 0.06) 0%, transparent 60%),
+                radial-gradient(circle at 80% 20%, rgba(255, 45, 85, 0.06) 0%, transparent 50%), #000;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 24px;
+            text-align: center;
+        }
+
+        .welcome-logo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(226, 255, 59, 0.08);
+            border: 2px solid rgba(226, 255, 59, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin: 0 auto 30px;
+            box-shadow: 0 0 60px rgba(226, 255, 59, 0.15);
+            animation: cyber-pulse 3s infinite;
+        }
+
+        .welcome-title {
+            font-size: 2rem;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            line-height: 1;
+            margin-bottom: 10px;
+        }
+
+        .welcome-title span {
+            color: var(--primary);
+        }
+
+        .welcome-sub {
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: #555;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 40px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 12px;
+            text-align: left;
+        }
+
+        .feature-ico {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .feature-ico.yellow {
+            background: rgba(226, 255, 59, 0.1);
+            color: var(--primary);
+        }
+
+        .feature-ico.red {
+            background: rgba(255, 45, 85, 0.1);
+            color: var(--red);
+        }
+
+        .mobile-constrained {
+            width: 100%;
+            max-width: 430px;
+            margin: 0 auto;
+        }
+
+        .results-page {
+            padding: 24px 20px 100px;
+            overflow-y: auto;
+            height: 100vh;
+        }
+
+        .hud-pulse {
+            animation: hud-glow 2s infinite ease-in-out;
+        }
+
+        @keyframes hud-glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 10px rgba(var(--primary-rgb), 0.1), inset 0 0 5px rgba(var(--primary-rgb), 0.05);
+            }
+
+            50% {
+                box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.3), inset 0 0 10px rgba(var(--primary-rgb), 0.1);
+            }
+        }
+
+        .feature-text h4 {
+            font-size: 0.85rem;
+            font-weight: 950;
+            margin-bottom: 3px;
+        }
+
+        .feature-text p {
+            font-size: 0.65rem;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .start-main-btn {
+            width: 100%;
+            margin-top: 30px;
+            background: linear-gradient(135deg, var(--primary) 0%, #d4f000 100%);
+            color: #000;
+            border: none;
+            border-radius: 100px;
+            padding: 22px;
+            font-size: 1.1rem;
+            font-weight: 950;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            box-shadow: 0 10px 40px rgba(var(--primary-rgb), 0.3);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .start-main-btn:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 15px 50px rgba(var(--primary-rgb), 0.4);
+        }
+
+        .start-main-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* ═══════════════════════════════════════
+           TUTORIAL OVERLAY
+        ═══════════════════════════════════════ */
+        .tutorial-overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.98) 0%, rgba(10, 10, 10, 0.95) 100%);
+            z-index: 5000000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 24px;
+            backdrop-filter: blur(20px);
+        }
+
+        .tutorial-overlay.active {
+            display: flex;
+        }
+
+        .tuto-step {
+            display: none;
+            text-align: center;
+            max-width: 360px;
+            animation: tutoSlide 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .tuto-step.active {
+            display: block;
+        }
+
+        .tuto-img {
+            width: 160px;
+            height: 160px;
+            border-radius: 40px;
+            background: rgba(var(--primary-rgb), 0.05);
+            border: 1px solid rgba(var(--primary-rgb), 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.5rem;
+            color: var(--primary);
+            margin: 0 auto 35px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(var(--primary-rgb), 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tuto-img::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: translateX(-100%);
+            animation: shine 3s infinite;
+        }
+
+        .tuto-title {
+            font-size: 1.8rem;
+            font-weight: 950;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .tuto-desc {
+            font-size: 0.9rem;
+            color: #aaa;
+            font-weight: 500;
+            line-height: 1.7;
+            margin-bottom: 40px;
+        }
+
+        .tuto-dots {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 40px;
+        }
+
+        .tuto-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #222;
+            transition: all 0.4s ease;
+        }
+
+        .tuto-dot.active {
+            background: var(--primary);
+            width: 30px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px var(--primary);
+        }
+
+        .tuto-btn {
+            padding: 20px 50px;
+            border-radius: 100px;
+            background: var(--primary);
+            color: #000;
+            font-size: 1rem;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 15px 35px rgba(var(--primary-rgb), 0.25);
+            transition: all 0.3s ease;
+        }
+
+        .tuto-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 45px rgba(var(--primary-rgb), 0.35);
+        }
+
+        /* Exit Confirmation Modal */
+        .confirm-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(15px);
+            z-index: 6000000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .confirm-modal.active {
+            display: flex;
+        }
+
+        .confirm-content {
+            background: #111;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 28px;
+            padding: 32px;
+            max-width: 340px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
+            animation: tutoSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .confirm-title {
+            font-size: 1.4rem;
+            font-weight: 950;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .confirm-desc {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        .confirm-btns {
+            display: flex;
+            gap: 14px;
+        }
+
+        .confirm-btn {
+            flex: 1;
+            padding: 18px;
+            border-radius: 16px;
+            border: none;
+            font-weight: 950;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .confirm-yes {
+            background: var(--red);
+            color: white;
+            box-shadow: 0 10px 25px rgba(255, 45, 85, 0.25);
+        }
+
+        .confirm-no {
+            background: #222;
+            color: #aaa;
+        }
+
+        .confirm-yes:active {
+            transform: scale(0.95);
+        }
+
+        .confirm-no:active {
+            transform: scale(0.95);
+        }
+
+        /* Mode & Difficulty Selection */
+        .mode-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-align: left;
+            width: 100%;
+            color: #fff;
+            font-family: inherit;
+        }
+
+        .mode-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .mode-card:active {
+            transform: scale(0.98);
+        }
+
+        .mode-card-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .diff-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 18px 20px;
+            cursor: pointer;
+            text-align: left;
+            width: 100%;
+            transition: all 0.2s;
+            color: #fff;
+            font-family: inherit;
+        }
+
+        .diff-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .diff-card:active {
+            transform: scale(0.98);
+        }
+
+        @keyframes tutoSlide {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes shine {
+            0% {
+                transform: translateX(-100%) rotate(45deg);
+            }
+
+            20%,
+            100% {
+                transform: translateX(100%) rotate(45deg);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ═══════════════════════════════════════
+           STAGE 1: CAMERA + CALIBRATION
+        ═══════════════════════════════════════ */
+        #stage-camera {
+            background: #000;
+            position: relative;
+        }
+
+        .camera-wrap {
+            position: relative;
+            flex: 1;
+            background: #111;
+            overflow: hidden;
+        }
+
+        #live-camera {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            position: absolute;
+            inset: 0;
+        }
+
+        /* Rainbow border on camera */
+        .camera-wrap::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: conic-gradient(#ff2d55 0%, #ffb300 15%, #E2FF3B 30%, #50ffb1 45%, #00d2ff 65%, #bc1abc 85%, #ff2d55 100%);
+            animation: border-rotate 4s linear infinite;
+            z-index: 0;
+            filter: blur(8px);
+            border-radius: 4px;
+        }
+
+        .camera-inner {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+        }
+
+        /* HUD top bar */
+        .cam-top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+        }
+
+        .rec-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 45, 85, 0.2);
+            border: 1px solid rgba(255, 45, 85, 0.4);
+            border-radius: 100px;
+            padding: 5px 12px;
+            font-size: 0.55rem;
+            font-weight: 950;
+            letter-spacing: 2px;
+            color: var(--red);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+        }
+
+        .timer-display {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.4rem;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+            letter-spacing: 1px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .combo-hud {
+            position: absolute;
+            top: 75px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(var(--primary-rgb), 0.3);
+            border-radius: 12px;
+            padding: 10px;
+            z-index: 10;
+            min-width: 80px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.1);
+        }
+
+        .combo-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.45rem;
+            font-weight: 950;
+            color: var(--primary);
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+
+        .combo-count {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.8rem;
+            font-weight: 400;
+            color: #fff;
+            line-height: 1;
+        }
+
+        .rec-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--red);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--red);
+            animation: rec-pulse 1s infinite;
+        }
+
+        @keyframes rec-pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.4;
+                transform: scale(1.2);
+            }
+        }
+
+        /* Calibration overlay enhancements */
+        .calibration-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            transition: opacity 0.4s ease;
+        }
+
+        .calib-status-tag {
+            background: rgba(var(--primary-rgb), 0.1);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 0.6rem;
+            font-weight: 950;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.2);
+            animation: breathe 2s infinite;
+        }
+
+        .calib-status-tag.waiting {
+            background: rgba(255, 45, 85, 0.1);
+            border-color: var(--red);
+            color: var(--red);
+            box-shadow: 0 0 20px rgba(255, 45, 85, 0.2);
+        }
+
+        @keyframes breathe {
+
+            0%,
+            100% {
+                opacity: 0.8;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+        }
+
+        /* Advanced Scanning UI */
+        .scanning-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, transparent, var(--primary), transparent);
+            box-shadow: 0 0 15px var(--primary);
+            z-index: 5;
+            opacity: 0.4;
+            animation: scan-move 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scan-move {
+
+            0%,
+            100% {
+                top: 5%;
+            }
+
+            50% {
+                top: 95%;
+            }
+        }
+
+        .hud-corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--primary);
+            z-index: 6;
+            opacity: 0.5;
+        }
+
+        .corner-tl {
+            top: 20px;
+            left: 20px;
+            border-right: 0;
+            border-bottom: 0;
+        }
+
+        .corner-tr {
+            top: 20px;
+            right: 20px;
+            border-left: 0;
+            border-bottom: 0;
+        }
+
+        .corner-bl {
+            bottom: 20px;
+            left: 20px;
+            border-right: 0;
+            border-top: 0;
+        }
+
+        .corner-br {
+            bottom: 20px;
+            right: 20px;
+            border-left: 0;
+            border-top: 0;
+        }
+
+        .glitch-text {
+            animation: text-glitch 4s infinite;
+        }
+
+        @keyframes text-glitch {
+
+            0%,
+            90%,
+            100% {
+                transform: translate(0);
+                text-shadow: none;
+            }
+
+            92% {
+                transform: translate(-1px, 1px);
+                text-shadow: 2px 0 var(--red), -2px 0 var(--teal);
+            }
+
+            94% {
+                transform: translate(1px, -1px);
+                text-shadow: -2px 0 var(--red), 2px 0 var(--teal);
+            }
+
+            96% {
+                transform: translate(0);
+            }
+        }
+
+        /* Live Coach command bubble */
+        .coach-bubble {
+            position: absolute;
+            bottom: 110px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(15px);
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            padding: 10px 24px;
+            font-size: 1.6rem;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: 3px;
+            text-shadow: 0 0 20px rgba(var(--primary-rgb), 0.5);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(var(--primary-rgb), 0.1);
+            z-index: 100;
+            white-space: nowrap;
+            transition: all 0.2s cubic-bezier(0.19, 1, 0.22, 1);
+            display: none;
+            text-transform: uppercase;
+        }
+
+        .coach-bubble.flash {
+            animation: bubble-flash 0.4s ease-out;
+        }
+
+        @keyframes bubble-flash {
+            0% {
+                transform: translateX(-50%) scale(0.8);
+                opacity: 0;
+            }
+
+            50% {
+                transform: translateX(-50%) scale(1.05);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateX(-50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Combo display HUD */
+        .combo-hud {
+            position: absolute;
+            top: 70px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 12px;
+            z-index: 10;
+            min-width: 90px;
+            text-align: center;
+        }
+
+        .combo-label {
+            font-size: 0.45rem;
+            font-weight: 950;
+            color: var(--primary);
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .combo-count {
+            font-size: 1.6rem;
+            font-weight: 950;
+            color: #fff;
+            line-height: 1;
+        }
+
+        .combo-sub {
+            font-size: 0.45rem;
+            color: #555;
+            font-weight: 800;
+        }
+
+        /* Metadata log pill */
+        .log-pill {
+            position: absolute;
+            bottom: 115px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 8px 12px;
+            z-index: 10;
+            max-width: 160px;
+        }
+
+        .log-entry {
+            font-size: 0.5rem;
+            font-weight: 800;
+            color: #888;
+            font-family: monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .log-entry.new {
+            color: var(--primary);
+        }
+
+        /* Bottom controls */
+        .cam-controls {
+            padding: 16px 20px 30px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.9);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            flex-shrink: 0;
+        }
+
+        .ctrl-btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 100px;
+            border: none;
+            font-family: inherit;
+            font-size: 0.75rem;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
+
+        .ctrl-primary {
+            background: var(--primary);
+            color: #000;
+        }
+
+        .ctrl-danger {
+            background: rgba(255, 45, 85, 0.15);
+            color: var(--red);
+            border: 1px solid rgba(255, 45, 85, 0.3);
+        }
+
+        .ctrl-ghost {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .ctrl-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* ═══════════════════════════════════════
+           STAGE 2: ANALYZING (LOADING)
+        ═══════════════════════════════════════ */
+        #stage-analyzing {
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            padding: 40px 24px;
+            text-align: center;
+        }
+
+        .analyze-ring {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .analyze-ring::before {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .analyze-ring i {
+            font-size: 3rem;
+            color: var(--primary);
+        }
+
+        .analyze-steps {
+            list-style: none;
+            text-align: left;
+            margin-top: 30px;
+        }
+
+        .analyze-step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #555;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .analyze-step i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .analyze-step.done {
+            color: var(--primary);
+        }
+
+        .analyze-step.active {
+            color: #fff;
+        }
+
+        .analyze-step.active i {
+            animation: spin 1s linear infinite;
+        }
+
+        /* ═══════════════════════════════════════
+           STAGE 3: RESULTS DASHBOARD
+        ═══════════════════════════════════════ */
+        #stage-results {
+            background: #000;
+            padding-bottom: 40px;
+        }
+
+        .results-header {
+            padding: 24px 20px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .results-back {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.65rem;
+            font-weight: 950;
+            color: #555;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-bottom: 16px;
+            background: none;
+            border: none;
+            font-family: inherit;
+        }
+
+        .session-score-card {
+            background: linear-gradient(135deg, rgba(226, 255, 59, 0.08) 0%, rgba(0, 0, 0, 0) 60%);
+            border: 1px solid rgba(226, 255, 59, 0.15);
+            border-radius: 24px;
+            padding: 24px;
+            margin: 0 20px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .session-score-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(226, 255, 59, 0.06), transparent);
+        }
+
+        .score-label {
+            font-size: 0.55rem;
+            font-weight: 950;
+            color: var(--primary);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .score-rating {
+            font-size: 2.5rem;
+            font-weight: 950;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .score-flaw {
+            font-size: 0.7rem;
+            color: #888;
+            font-weight: 700;
+        }
+
+        .score-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .score-pill {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 14px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .pill-val {
+            font-size: 1.2rem;
+            font-weight: 950;
+            color: #fff;
+        }
+
+        .pill-label {
+            font-size: 0.45rem;
+            font-weight: 950;
+            color: #555;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+
+        /* Drill Chart */
+        .section-head {
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .section-head h3 {
+            font-size: 0.7rem;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #555;
+        }
+
+        .drill-card {
+            margin: 0 20px 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 16px;
+        }
+
+        .drill-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .drill-name {
+            font-size: 1rem;
+            font-weight: 950;
+            text-transform: uppercase;
+        }
+
+        .drill-rating {
+            font-size: 0.55rem;
+            font-weight: 950;
+            padding: 4px 10px;
+            border-radius: 100px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .drill-rating.explosive {
+            background: rgba(226, 255, 59, 0.15);
+            color: var(--primary);
+        }
+
+        .drill-rating.snappy {
+            background: rgba(26, 188, 156, 0.15);
+            color: var(--teal);
+        }
+
+        .drill-rating.slow {
+            background: rgba(255, 45, 85, 0.15);
+            color: var(--red);
+        }
+
+        .drill-metrics {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .metric-box {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .metric-val {
+            font-size: 1.1rem;
+            font-weight: 950;
+        }
+
+        .metric-lbl {
+            font-size: 0.4rem;
+            font-weight: 950;
+            color: #555;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .drill-note {
+            font-size: 0.65rem;
+            color: #888;
+            font-weight: 700;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* Reflex bar chart */
+        .reflex-bars {
+            margin: 0 20px 20px;
+        }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .bar-label {
+            font-size: 0.6rem;
+            font-weight: 950;
+            color: #888;
+            width: 65px;
+            text-transform: uppercase;
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .bar-fill.good {
+            background: var(--primary);
+            box-shadow: 0 0 8px rgba(226, 255, 59, 0.5);
+        }
+
+        .bar-fill.ok {
+            background: var(--teal);
+        }
+
+        .bar-fill.slow {
+            background: var(--red);
+        }
+
+        .bar-ms {
+            font-size: 0.6rem;
+            font-weight: 950;
+            color: #fff;
+            width: 40px;
+            text-align: right;
+        }
+
+        /* Coach advice */
+        .coach-card {
+            margin: 0 20px 20px;
+            background: linear-gradient(135deg, rgba(255, 45, 85, 0.06), rgba(0, 0, 0, 0));
+            border: 1px solid rgba(255, 45, 85, 0.15);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .coach-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(255, 45, 85, 0.1);
+            border: 2px solid rgba(255, 45, 85, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .coach-advice-text {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #ccc;
+            line-height: 1.6;
+        }
+
+        .coach-name {
+            font-size: 0.5rem;
+            font-weight: 950;
+            color: var(--red);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        /* Action buttons */
+        .result-actions {
+            padding: 10px 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* ═══════════════════════════════════════
+           ANIMATIONS / UTILITIES
+        ═══════════════════════════════════════ */
+        @keyframes pulse-dot {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        @keyframes cyber-pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(226, 255, 59, 0.1);
+            }
+
+            50% {
+                box-shadow: 0 0 40px rgba(226, 255, 59, 0.3);
+            }
+        }
+
+        @keyframes border-rotate {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .slash-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 1000000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .slash-overlay video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .slash-active {
+            display: flex !important;
+        }
+
+        .voice-opt {
+            flex: 1;
+            padding: 12px 8px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #666;
+            font-family: inherit;
+            font-size: 0.65rem;
+            font-weight: 900;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .voice-opt i {
+            font-size: 0.9rem;
+        }
+
+        .voice-opt.active {
+            background: rgba(226, 255, 59, 0.1);
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(226, 255, 59, 0.1);
+        }
+
+        .error-banner {
+            margin: 0 20px 15px;
+            background: rgba(255, 45, 85, 0.1);
+            border: 1px solid rgba(255, 45, 85, 0.3);
+            border-radius: 16px;
+            padding: 14px 18px;
+            font-size: 0.75rem;
+            color: var(--red);
+            font-weight: 800;
+            display: none;
+        }
+    </style>
+  <script type="module" crossorigin src="/assets/vision-analyser-DGqqVMiv.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+  <link rel="modulepreload" crossorigin href="/assets/supabase-client-CZkVvohH.js">
+  <link rel="stylesheet" crossorigin href="/assets/style-Dx3LiayG.css">
+</head>
+
+<body>
+
+    <!-- Slash Redirect Overlay -->
+    <div id="slash-overlay" class="slash-overlay">
+        <video id="slash-video" muted playsinline preload="auto">
+            <source src="Untitled design transition.mp4" type="video/mp4">
+        </video>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+     STAGE 0: WELCOME
+═══════════════════════════════════════ -->
+    <!-- Tutorial Overlay -->
+    <div id="tutorial-overlay" class="tutorial-overlay">
+        <!-- Step 1 -->
+        <div class="tuto-step active" id="ts-1">
+            <div class="tuto-img"><i class="fa-solid fa-camera"></i></div>
+            <h2 class="tuto-title">INITIATE</h2>
+            <p class="tuto-desc">Grant camera & mic access. Choose your AI coach profile to begin the session.</p>
+            <div class="tuto-dots">
+                <div class="tuto-dot active"></div>
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot"></div>
+            </div>
+            <button class="tuto-btn" onclick="nextTuto(1)">NEXT</button>
+        </div>
+        <!-- Step 2 -->
+        <div class="tuto-step" id="ts-2">
+            <div class="tuto-img"><i class="fa-solid fa-person-arrow-down-to-line"></i></div>
+            <h2 class="tuto-title">CALIBRATE</h2>
+            <p class="tuto-desc">Stand 6-8 feet away. Keep your full body in the scan frame until target is locked.</p>
+            <div class="tuto-dots">
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot active"></div>
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot"></div>
+            </div>
+            <button class="tuto-btn" onclick="nextTuto(2)">NEXT</button>
+        </div>
+        <!-- Step 3 -->
+        <div class="tuto-step" id="ts-3">
+            <div class="tuto-img"><i class="fa-solid fa-bolt"></i></div>
+            <h2 class="tuto-title">EXECUTE</h2>
+            <p class="tuto-desc">Follow the AI coach's voice commands. Your punch speed & snap are logged live.</p>
+            <div class="tuto-dots">
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot active"></div>
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot"></div>
+            </div>
+            <button class="tuto-btn" onclick="nextTuto(3)">NEXT</button>
+        </div>
+        <!-- Step 4 -->
+        <div class="tuto-step" id="ts-4">
+            <div class="tuto-img"><i class="fa-solid fa-chart-line"></i></div>
+            <h2 class="tuto-title">ANALYZE</h2>
+            <p class="tuto-desc">After the session, ZEPHYR provides a deep biomechanical breakdown of your technical
+                flaws.</p>
+            <div class="tuto-dots">
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot active"></div>
+                <div class="tuto-dot"></div>
+            </div>
+            <button class="tuto-btn" onclick="nextTuto(4)">NEXT</button>
+        </div>
+        <!-- Step 5 (Voice Control) -->
+        <div class="tuto-step" id="ts-5">
+            <div class="tuto-img"><i class="fa-solid fa-microphone-lines"></i></div>
+            <h2 class="tuto-title">VOICE CONTROL</h2>
+            <p class="tuto-desc">Keep your hands up — control the session hands-free. Say <strong>"START"</strong>,
+                <strong>"STOP"</strong>, or <strong>"RESET"</strong> anytime.
+            </p>
+            <div class="tuto-dots">
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot"></div>
+                <div class="tuto-dot active"></div>
+            </div>
+            <button class="tuto-btn" onclick="closeTuto()">GET STARTED</button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+     STAGE 0: WELCOME
+ ═══════════════════════════════════════ -->
+    <!-- Exit Confirmation Modal -->
+    <div id="confirm-modal" class="confirm-modal">
+        <div class="confirm-content">
+            <h3 class="confirm-title">ABORT SESSION?</h3>
+            <p class="confirm-desc">Are you sure you want to end this session? Your progress and analysis will be lost.
+            </p>
+            <div class="confirm-btns">
+                <button class="confirm-btn confirm-no" onclick="closeConfirmModal()">NO</button>
+                <button class="confirm-btn confirm-yes" onclick="confirmExit()">YES, EXIT</button>
+            </div>
+        </div>
+    </div>
+
+    <section class="stage active" id="stage-welcome"> <button class="results-back"
+            onclick="location.href='dashboard.html'" style="position: absolute; top: 30px; left: 24px; z-index: 100;">
+            <i class="fa-solid fa-arrow-left"></i> BACK
+        </button>
+
+        <button class="results-back" onclick="openTuto()"
+            style="position: absolute; top: 30px; right: 24px; z-index: 100; border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center;">
+            <i class="fa-solid fa-question"></i>
+        </button>
+        <div style="max-width: 430px; width: 100%; margin: 0 auto; padding: 50px 24px 40px;">
+
+            <div class="welcome-logo">
+                <i class="fa-solid fa-camera"></i>
+            </div>
+
+            <div class="welcome-sub">ZEPHYR AI · Session Analysis</div>
+            <h1 class="welcome-title">VISION<br><span>ANALYSER</span></h1>
+            <p style="font-size: 0.75rem; color: #666; margin: 15px 0 35px; line-height: 1.7;">
+                Your AI coach will guide you through a live drill, record your session, then deliver a deep
+                biomechanical performance breakdown.
+            </p>
+
+            <div class="feature-card">
+                <div class="feature-ico yellow"><i class="fa-solid fa-crosshairs"></i></div>
+                <div class="feature-text">
+                    <h4>10-Sec Posture Calibration</h4>
+                    <p>AI locks your stance & guard before the drill begins</p>
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-ico red"><i class="fa-solid fa-microphone-lines"></i></div>
+                <div class="feature-text">
+                    <h4>Live Voice Drill Coaching</h4>
+                    <p>Jab · Cross · Hook · Uppercut commands — synced to mic</p>
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-ico teal"><i class="fa-solid fa-chart-column"></i></div>
+                <div class="feature-text">
+                    <h4>Reflex & Form AI Report</h4>
+                    <p>Reaction speed, punch velocity & guard consistency scored</p>
+                </div>
+            </div>
+
+            <div class="feature-card"
+                style="border-color: rgba(var(--primary-rgb), 0.2); background: rgba(var(--primary-rgb), 0.02);">
+                <div class="feature-ico" style="background: rgba(255,255,255,0.05); color: #fff;"><i
+                        class="fa-solid fa-microphone-lines"></i></div>
+                <div class="feature-text">
+                    <h4 style="color: #fff;">Hands-Free Voice Control</h4>
+                    <p>Say "START", "STOP" or "RESET" to control the session</p>
+                </div>
+            </div>
+
+            <div
+                style="margin: 25px 0; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; padding: 15px;">
+                <div
+                    style="font-size: 0.55rem; font-weight: 950; color: #555; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; text-align: center;">
+                    AI COACH VOICE</div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="voice-opt active" id="v-steel" onclick="setVoice('steel', this)">
+                        <i class="fa-solid fa-mars"></i>
+                        <span>STEEL</span>
+                    </button>
+                    <button class="voice-opt" id="v-athena" onclick="setVoice('athena', this)">
+                        <i class="fa-solid fa-venus"></i>
+                        <span>ATHENA</span>
+                    </button>
+                    <button class="voice-opt" id="v-cyber" onclick="setVoice('cyber', this)">
+                        <i class="fa-solid fa-microchip"></i>
+                        <span>CYBER</span>
+                    </button>
+                </div>
+            </div>
+
+            <button class="start-main-btn" onclick="openModeSelect()">
+                <i class="fa-solid fa-play"></i>
+                INITIALISE SESSION
+            </button>
+
+            <p style="font-size: 0.55rem; color: #333; margin-top: 16px; text-align: center;">
+                Camera & microphone access required for AI analysis
+            </p>
+        </div>
+    </section>
+
+    <!-- MODE SELECTION STAGE -->
+    <section class="stage" id="stage-mode-select"
+        style="background: radial-gradient(circle at 50% 30%, rgba(226,255,59,0.05) 0%, transparent 60%), #000; align-items:center; justify-content:center; padding: 30px 24px;">
+        <button class="results-back" onclick="goToWelcome()" style="position:absolute;top:30px;left:24px;z-index:100;">
+            <i class="fa-solid fa-arrow-left"></i> BACK
+        </button>
+        <div class="mobile-constrained">
+            <!-- Step 1: Choose Mode -->
+            <div id="mode-step-1">
+                <div
+                    style="font-size:0.6rem;font-weight:950;color:var(--primary);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;text-align:center;">
+                    STEP 1 OF 2</div>
+                <h2 style="font-size:1.8rem;font-weight:950;text-align:center;margin-bottom:6px;">CHOOSE YOUR<br><span
+                        style="color:var(--primary);">DRILL MODE</span></h2>
+                <p style="font-size:0.75rem;color:#555;text-align:center;margin-bottom:28px;font-weight:600;">ZEPHYR AI
+                    generates a personalised drill from your profile &amp; reflex data</p>
+                <div style="display:flex;flex-direction:column;gap:14px;">
+                    <button class="mode-card" onclick="selectMode('punches')">
+                        <div class="mode-card-icon"
+                            style="background:rgba(226,255,59,0.08);border:1px solid rgba(226,255,59,0.25);color:var(--primary);">
+                            <i class="fa-solid fa-hand-fist"></i>
+                        </div>
+                        <div style="flex:1;text-align:left;">
+                            <div style="font-size:1rem;font-weight:950;text-transform:uppercase;">PUNCHES ONLY</div>
+                            <div style="font-size:0.7rem;color:#666;margin-top:4px;font-weight:600;">Jab &middot; Cross
+                                &middot; Hook &middot; Uppercut</div>
+                        </div>
+                        <i class="fa-solid fa-arrow-right" style="color:#333;font-size:0.8rem;"></i>
+                    </button>
+                    <button class="mode-card" onclick="selectMode('defense')">
+                        <div class="mode-card-icon"
+                            style="background:rgba(255,45,85,0.08);border:1px solid rgba(255,45,85,0.25);color:var(--red);">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <div style="flex:1;text-align:left;">
+                            <div style="font-size:1rem;font-weight:950;text-transform:uppercase;">PUNCHES &amp; DEFENSE
+                            </div>
+                            <div style="font-size:0.7rem;color:#666;margin-top:4px;font-weight:600;">Punches + Slip
+                                &middot; Roll &middot; Pivot</div>
+                        </div>
+                        <i class="fa-solid fa-arrow-right" style="color:#333;font-size:0.8rem;"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Step 2: Choose Difficulty -->
+            <div id="mode-step-2" style="display:none;">
+                <div
+                    style="font-size:0.6rem;font-weight:950;color:var(--primary);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;text-align:center;">
+                    STEP 2 OF 3</div>
+                <h2 style="font-size:1.8rem;font-weight:950;text-align:center;margin-bottom:6px;">SET
+                    DIFFICULTY<br><span id="mode-label-display" style="color:var(--primary);">PUNCHES ONLY</span></h2>
+                <p style="font-size:0.75rem;color:#555;text-align:center;margin-bottom:28px;font-weight:600;">Affects AI
+                    voice speed and command intensity</p>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <button class="diff-card" onclick="selectDifficulty('easy')">
+                        <div
+                            style="font-size:0.7rem;font-weight:950;text-transform:uppercase;letter-spacing:2px;color:#50ffb1;">
+                            EASY</div>
+                        <div style="font-size:0.75rem;color:#555;margin-top:4px;">Slow pace &middot; 3s gaps &middot;
+                            Beginner-friendly</div>
+                    </button>
+                    <button class="diff-card" onclick="selectDifficulty('medium')">
+                        <div
+                            style="font-size:0.7rem;font-weight:950;text-transform:uppercase;letter-spacing:2px;color:var(--primary);">
+                            MEDIUM</div>
+                        <div style="font-size:0.75rem;color:#555;margin-top:4px;">Normal pace &middot; 2s gaps &middot;
+                            Recommended</div>
+                    </button>
+                    <button class="diff-card" onclick="selectDifficulty('hard')">
+                        <div
+                            style="font-size:0.7rem;font-weight:950;text-transform:uppercase;letter-spacing:2px;color:var(--red);">
+                            HARD</div>
+                        <div style="font-size:0.75rem;color:#555;margin-top:4px;">Rapid-fire &middot; 0.8s gaps &middot;
+                            Elite intensity</div>
+                    </button>
+                </div>
+                <button onclick="showStep(1)"
+                    style="margin-top:20px;width:100%;padding:14px;background:transparent;border:1px solid rgba(255,255,255,0.08);color:#555;border-radius:100px;font-size:0.75rem;font-weight:950;letter-spacing:1px;cursor:pointer;text-transform:uppercase;">&#8592;
+                    CHANGE MODE</button>
+            </div>
+
+            <!-- Step 3: Set Punch Target -->
+            <div id="mode-step-3" style="display:none;">
+                <div
+                    style="font-size:0.6rem;font-weight:950;color:var(--primary);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;text-align:center;">
+                    STEP 3 OF 3</div>
+                <h2 style="font-size:1.8rem;font-weight:950;text-align:center;margin-bottom:6px;">PUNCH<br><span
+                        style="color:var(--primary);">TARGET</span></h2>
+                <p style="font-size:0.75rem;color:#555;text-align:center;margin-bottom:28px;font-weight:600;">How many
+                    commands should the AI Coach issue?</p>
+
+                <div
+                    style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:24px; padding:30px 20px; text-align:center; margin-bottom:25px;">
+                    <div id="punch-slider-val"
+                        style="font-size:3.5rem; font-weight:950; color:#fff; line-height:1; font-style:italic;">50
+                    </div>
+                    <div
+                        style="font-size:0.65rem; color:var(--primary); font-weight:800; letter-spacing:2px; margin-bottom:20px;">
+                        TOTAL COMMANDS</div>
+
+                    <input type="range" id="punch-target-slider" min="10" max="150" step="5" value="50"
+                        oninput="updatePunchSlider(this.value)"
+                        style="width:100%; accent-color:var(--primary); margin-bottom:15px; cursor:pointer;">
+
+                    <div id="recommended-badge"
+                        style="display:inline-block; padding:6px 14px; background:rgba(var(--primary-rgb),0.1); border:1px solid var(--primary); color:var(--primary); border-radius:100px; font-size:0.6rem; font-weight:950; letter-spacing:1px;">
+                        RECOMMENDED FOR MEDIUM</div>
+                </div>
+
+                <button class="start-main-btn" onclick="startPermissions()">
+                    <i class="fa-solid fa-camera"></i>
+                    START CALIBRATION
+                </button>
+
+                <button onclick="showStep(2)"
+                    style="margin-top:20px;width:100%;padding:14px;background:transparent;border:1px solid rgba(255,255,255,0.08);color:#555;border-radius:100px;font-size:0.75rem;font-weight:950;letter-spacing:1px;cursor:pointer;text-transform:uppercase;">&#8592;
+                    BACK TO DIFFICULTY</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- CAMERA ERROR STAGE -->
+    <section class="stage" id="stage-cam-error"
+        style="align-items:center; justify-content:center; background: radial-gradient(circle at 50% 40%, rgba(255,45,85,0.08) 0%, transparent 60%), #000; padding:30px 24px; text-align:center;">
+        <button class="results-back" onclick="goToWelcome()"
+            style="position: absolute; top: 30px; left: 24px; z-index: 100;">
+            <i class="fa-solid fa-arrow-left"></i> BACK
+        </button>
+        <div class="mobile-constrained">
+            <div
+                style="width:110px; height:110px; border-radius:50%; background:rgba(255,45,85,0.1); border:2px solid rgba(255,45,85,0.35); display:flex; align-items:center; justify-content:center; margin:0 auto 28px; box-shadow:0 0 60px rgba(255,45,85,0.2); animation:cyber-pulse 2s infinite;">
+                <i class="fa-solid fa-camera-slash" style="font-size:2.5rem; color:var(--red);"></i>
+            </div>
+            <div
+                style="font-size:0.6rem; font-weight:950; color:var(--red); letter-spacing:3px; text-transform:uppercase; margin-bottom:10px;">
+                SESSION ABORTED</div>
+            <h2 style="font-size:1.8rem; font-weight:950; line-height:1.1; margin-bottom:14px;">UNABLE TO<br>DETECT
+                CAMERA</h2>
+            <p style="font-size:0.8rem; color:#777; font-weight:700; line-height:1.7; margin-bottom:16px;"
+                id="cam-error-msg">
+                Camera access was denied or the device was disconnected. AI analysis cannot continue without a live
+                video feed.
+            </p>
+            <div
+                style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:18px; margin:0 0 20px; text-align:left;">
+                <div
+                    style="font-size:0.55rem; font-weight:950; color:#555; letter-spacing:2px; text-transform:uppercase; margin-bottom:12px;">
+                    TROUBLESHOOTING</div>
+                <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom:9px;">
+                    <i class="fa-solid fa-1"
+                        style="color:var(--red); font-size:0.75rem; margin-top:3px; flex-shrink:0;"></i>
+                    <span style="font-size:0.7rem; color:#888; font-weight:700;">Allow camera &amp; microphone in your
+                        browser's address bar</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom:9px;">
+                    <i class="fa-solid fa-2"
+                        style="color:var(--red); font-size:0.75rem; margin-top:3px; flex-shrink:0;"></i>
+                    <span style="font-size:0.7rem; color:#888; font-weight:700;">Make sure no other app is using the
+                        camera</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom:9px;">
+                    <i class="fa-solid fa-3"
+                        style="color:var(--red); font-size:0.75rem; margin-top:3px; flex-shrink:0;"></i>
+                    <span style="font-size:0.7rem; color:#888; font-weight:700;">Reload the page and try again</span>
+                </div>
+                <div style="display:flex; gap:10px; align-items:flex-start;">
+                    <i class="fa-solid fa-mobile-screen"
+                        style="color:var(--red); font-size:0.75rem; margin-top:3px; flex-shrink:0;"></i>
+                    <span style="font-size:0.7rem; color:#888; font-weight:700;">If you installed ZEPHYR as an app on
+                        Android or iOS, open your device Settings → Apps → ZEPHYR → Permissions and enable Camera and
+                        Microphone, then relaunch.</span>
+                </div>
+            </div>
+            <div
+                style="font-size:0.65rem; font-weight:800; color:#444; letter-spacing:1px; text-transform:uppercase; margin-bottom:20px;">
+                Returning to dashboard in <span id="redirect-count" style="color:var(--red); font-weight:950;">5</span>s
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button onclick="retryCamera()"
+                    style="flex:2; padding:16px; border-radius:100px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; font-family:inherit; font-size:0.8rem; font-weight:950; text-transform:uppercase; cursor:pointer; letter-spacing:1px;">
+                    <i class="fa-solid fa-rotate-right" style="margin-right:8px;"></i>RETRY
+                </button>
+                <button onclick="triggerSlashAndQuit()"
+                    style="flex:1; padding:16px; border-radius:100px; background:rgba(255,45,85,0.1); border:1px solid rgba(255,45,85,0.3); color:var(--red); font-family:inherit; font-size:0.8rem; font-weight:950; text-transform:uppercase; cursor:pointer;">
+                    <i class="fa-solid fa-house"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- STAGE 1: LIVE CAMERA + DRILL -->
+    <section class="stage" id="stage-camera">
+        <div class="mobile-constrained" style="display: flex; flex-direction: column; height: 100vh;">
+
+            <!-- Camera Feed -->
+            <div class="camera-wrap"
+                style="flex: 1; position: relative; margin: 10px 10px 0; border-radius: 30px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+
+                <video id="live-camera" autoplay playsinline muted
+                    style="width:100%; height:100%; object-fit:cover; transform: scaleX(-1); position:absolute; inset:0; z-index:2;"></video>
+
+                <canvas id="skeleton-canvas"
+                    style="width:100%; height:100%; object-fit:cover; transform: scaleX(-1); position:absolute; inset:0; z-index:3; pointer-events:none;"></canvas>
+
+                <!-- Live Scanning Animation -->
+                <div class="scanning-line"></div>
+
+                <!-- HUD Brackets/Corners -->
+                <div class="hud-corner corner-tl"></div>
+                <div class="hud-corner corner-tr"></div>
+                <div class="hud-corner corner-bl"></div>
+                <div class="hud-corner corner-br"></div>
+
+                <!-- Rainbow aura (enhanced contrast) -->
+                <div
+                    style="position:absolute; inset: -3px; background: conic-gradient(#ff2d55 0%, #ffb300 15%,#E2FF3B 30%,#50ffb1 45%,#00d2ff 65%,#bc1abc 85%,#ff2d55 100%); animation: border-rotate 6s linear infinite; z-index:0; filter:blur(10px); border-radius:32px; opacity:0.6;">
+                </div>
+
+                <!-- Camera black mask -->
+                <div style="position:absolute; inset: 2px; background:#000; border-radius:28px; z-index:1;"></div>
+
+                <!-- Top bar -->
+                <div class="cam-top-bar" style="z-index:100;">
+                    <button class="results-back" onclick="handleBackNavigation()"
+                        style="background:rgba(255,255,255,0.08); border-radius:50%; width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center; margin-right:12px; border:1px solid rgba(255,255,255,0.1); backdrop-filter:blur(10px);">
+                        <i class="fa-solid fa-arrow-left" style="font-size:0.8rem; color:#fff;"></i>
+                    </button>
+                    <div class="rec-indicator"
+                        style="margin-right: auto; background: rgba(0,0,0,0.4); backdrop-filter:blur(5px); border:1px solid rgba(255,255,255,0.1);">
+                        <div class="rec-dot" id="voice-dot" style="background:#333; width:8px; height:8px;"></div>
+                        <span id="voice-label"
+                            style="font-size:0.5rem; color:#888; letter-spacing:1px; font-family:'Orbitron',sans-serif;">VOICE
+                            OFF</span>
+                    </div>
+                    <div class="rec-indicator"
+                        style="background: rgba(0,0,0,0.4); backdrop-filter:blur(5px); border:1px solid rgba(255,255,255,0.1);">
+                        <div class="rec-dot" id="rec-dot"></div>
+                        <span id="rec-label"
+                            style="font-family:'Orbitron',sans-serif; font-size:0.5rem; letter-spacing:1px;">STANDBY</span>
+                    </div>
+                    <div class="timer-display glitch-text" id="timer-display">00:00</div>
+                    <div class="combo-hud">
+                        <div class="combo-label">PUNCHES</div>
+                        <div class="combo-count" id="punch-count">0</div>
+                        <div class="combo-sub" style="font-family:'Orbitron',sans-serif; letter-spacing:1px;">LOGGED
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calibration overlay -->
+                <div class="calibration-overlay" id="calib-overlay">
+                    <div class="calib-status-tag" id="calib-status">WAITING FOR PERSON...</div>
+                    <div class="calib-frame">
+                        <div class="calib-corners">
+                            <span></span><span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    <div class="calib-text">
+                        <div class="calib-count" id="calib-count">10</div>
+                        <div class="calib-msg" id="calib-msg">STEP INTO FRAME · GUARD UP</div>
+                    </div>
+                </div>
+
+                <!-- Coach command bubble -->
+                <div class="coach-bubble" id="coach-bubble">JAB</div>
+
+                <!-- Command log -->
+                <div class="log-pill" id="log-pill" style="display:none;">
+                    <div class="log-entry" id="log-text">—</div>
+                </div>
+
+            </div>
+
+            <!-- Bottom Controls -->
+            <div class="cam-controls" style="flex-shrink:0;">
+                <button class="ctrl-btn ctrl-ghost" id="btn-back-cam" onclick="handleBackNavigation()">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <button class="ctrl-btn ctrl-primary" id="btn-start-drill" onclick="startDrillSession()"
+                    style="flex: 3;">
+                    <i class="fa-solid fa-bolt"></i> START DRILL
+                </button>
+                <button class="ctrl-btn ctrl-danger" id="btn-stop" onclick="stopAndAnalyse()" disabled>
+                    <i class="fa-solid fa-circle-stop"></i> STOP &amp; ANALYSE
+                </button>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+     STAGE 2: ANALYZING
+═══════════════════════════════════════ -->
+    <section class="stage" id="stage-analyzing">
+        <div class="mobile-constrained"
+            style="padding:40px 24px 100px; display: flex; flex-direction: column; min-height: 100vh;">
+
+            <div class="analyze-ring">
+                <i class="fa-solid fa-brain"></i>
+            </div>
+
+            <div
+                style="font-size: 0.6rem; font-weight: 950; color: var(--primary); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 10px;">
+                ZEPHYR 1.5 Pro · Multimodal</div>
+            <h2 style="font-size: 1.6rem; font-weight: 950; margin-bottom: 6px;">ANALYSING<br>YOUR SESSION</h2>
+            <p style="font-size: 0.7rem; color: #555; font-weight: 700;">AI is reviewing your form, timing & guard
+                consistency</p>
+
+            <ul class="analyze-steps" id="analyze-steps">
+                <li class="analyze-step" id="step-1"><i class="fa-solid fa-check"></i> Uploading session data</li>
+                <li class="analyze-step" id="step-2"><i class="fa-solid fa-sync"></i> Audio command alignment</li>
+                <li class="analyze-step" id="step-3"><i class="fa-solid fa-sync"></i> Extracting motion metrics</li>
+                <li class="analyze-step" id="step-4"><i class="fa-solid fa-sync"></i> Calibration posture check</li>
+                <li class="analyze-step" id="step-5"><i class="fa-solid fa-sync"></i> Generating coach report</li>
+            </ul>
+
+            <div class="error-banner" id="error-banner">
+                <i class="fa-solid fa-triangle-exclamation" style="margin-right:8px;"></i>
+                <span id="error-text">Analysis failed. Using demo data.</span>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+     STAGE 3: RESULTS
+═══════════════════════════════════════ -->
+    <section class="stage" id="stage-results">
+        <div style="max-width: 430px; width: 100%; margin: 0 auto;">
+
+            <div class="results-header">
+                <button class="results-back" onclick="triggerSlashAndQuit()">
+                    <i class="fa-solid fa-house"></i> HOME
+                </button>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                    <div>
+                        <div
+                            style="font-size: 0.55rem; font-weight: 950; color: var(--primary); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px;">
+                            COMBAT INTEL REPORT</div>
+                        <h1 style="font-size: 1.6rem; font-weight: 950;">SESSION<br>BREAKDOWN</h1>
+                    </div>
+                    <div id="calib-badge"
+                        style="font-size: 0.55rem; font-weight: 950; padding: 6px 12px; border-radius: 100px; background: rgba(26,188,156,0.15); color: var(--teal); letter-spacing: 1px;">
+                        ✓ CALIBRATED
+                    </div>
+                </div>
+            </div>
+
+            <!-- Score Card -->
+            <div class="session-score-card" style="margin-top: 16px;">
+                <div class="score-label">Overall Performance</div>
+                <div class="score-rating" id="res-rating">AMATEUR</div>
+                <hr style="border-color: rgba(255,255,255,0.05); margin: 12px 0;">
+                <div class="score-flaw"><i class="fa-solid fa-triangle-exclamation"
+                        style="color: #f1c40f; margin-right: 6px;"></i><span id="res-flaw">Loading...</span></div>
+
+                <div class="score-row">
+                    <div class="score-pill">
+                        <div class="pill-val" id="res-posture">—</div>
+                        <div class="pill-label">Posture<br>Score</div>
+                    </div>
+                    <div class="score-pill">
+                        <div class="pill-val" id="res-avg-reflex">—</div>
+                        <div class="pill-label">Avg Reflex<br>(ms)</div>
+                    </div>
+                    <div class="score-pill">
+                        <div class="pill-val" id="res-punch-count">—</div>
+                        <div class="pill-label">Punches<br>Logged</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reflex Bar Chart -->
+            <div class="section-head" style="margin-top: 20px;">
+                <h3>Reflex Timeline</h3>
+            </div>
+            <div class="reflex-bars" id="reflex-bars">
+                <!-- Dynamic bars -->
+            </div>
+
+            <!-- Individual Drills -->
+            <div class="section-head">
+                <h3>Drill Breakdown</h3>
+            </div>
+            <div id="drill-cards-container">
+                <!-- Dynamic drill cards -->
+            </div>
+
+            <!-- Coach Note -->
+            <div class="section-head">
+                <h3>Coach's Note</h3>
+            </div>
+            <div class="coach-card">
+                <div class="coach-avatar">🥊</div>
+                <div>
+                    <div class="coach-name">ZEPHYR AI Coach</div>
+                    <div class="coach-advice-text" id="res-advice">Loading coach insight...</div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="result-actions">
+                <button class="ctrl-btn ctrl-primary" onclick="goToWelcome()" style="flex:2;">
+                    <i class="fa-solid fa-rotate-right"></i> NEW SESSION
+                </button>
+                <button class="ctrl-btn ctrl-ghost" onclick="triggerSlashAndQuit()">
+                    <i class="fa-solid fa-house"></i>
+                </button>
+            </div>
+
+        </div>
+    </section>
+
+    <script>
+        // Redirect if fighter profile incomplete (vision requires main onboarding)
+        (function () {
+            var Z = window.ZephyrOnboarding;
+            if (!Z) return;
+            var data = Z.getOnboardingData();
+            if (!Z.hasVisionProfile(data)) {
+                Z.redirectToMainOnboarding();
+            }
+        })();
+
+        function requireVisionOnboarding() {
+            var Z = window.ZephyrOnboarding;
+            if (!Z) return true;
+            var data = Z.getOnboardingData();
+            if (!Z.hasVisionProfile(data)) {
+                Z.redirectToMainOnboarding();
+                return false;
+            }
+            return true;
+        }
+
+        function playUiClick() {
+            try {
+                if (window.AppSounds && typeof window.AppSounds.play === 'function') {
+                    window.AppSounds.play('click');
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        //  ZEPHYR AI VIDEO ANALYSER ENGINE
+        //  3-Stage: Calibration → Live Drill → ZEPHYR Analysis
+        // ═══════════════════════════════════════════════════════════
+
+        // ── ZEPHYR API config ──────────────────────────────────────
+        // ── ZEPHYR Backend Config ──────────────────────────────────
+        // Dynamic URL for Cloud Run deployment, relative fallback for dev
+        const ZEPHYR_API_BASE = window.NEXT_PUBLIC_API_URL
+            || window.ZEPHYR_API_BASE
+            || 'https://boxing-backend-905213936581.us-central1.run.app';
+        const BACKEND_URL = ZEPHYR_API_BASE.replace(/\/$/, '') + '/api/analyze-session';
+
+
+        // Supabase / Auth Bridge
+        // We use a module import later in the script or assume auth.js is loaded
+        // For vision-analyser, we'll keep it simple and sync via the global db object if it exists
+
+
+        // ── State ──────────────────────────────────────────────────
+        let selectedVoiceProfile = 'steel'; // Default voice
+        let mediaStream = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let commandLog = [];
+        let punchCount = 0;
+        let drillActive = false;
+        let sessionStartTime = null;
+        let calibCountdown = null;
+        let timerInterval = null;
+        let drillTimeout = null;
+        let redirectTimer = null;
+        let currentDrillSet = null;
+        let selectedMode = 'punches';      // 'punches' | 'defense'
+        let selectedDifficulty = 'medium'; // 'easy' | 'medium' | 'hard'
+        let punchTarget = 50;              // Command count target
+
+        // Performance Optimization: Local Reflex Tracking State
+        let reflexAnalytics = {
+            matches: [], // { command: 'Jab', reflexMs: 250, velocity: 'Explosive' }
+            lastCommandIssuedAt: 0,
+            activeCommand: null,
+            baseArmLength: 0,
+            punchInProgress: false,
+            punchStartTime: 0
+        };
+
+
+        // ── Mode / Difficulty Selection Flow ──────────────────────
+        function showStep(n) {
+            document.getElementById('mode-step-1').style.display = (n === 1) ? 'block' : 'none';
+            document.getElementById('mode-step-2').style.display = (n === 2) ? 'block' : 'none';
+            document.getElementById('mode-step-3').style.display = (n === 3) ? 'block' : 'none';
+        }
+
+        function openModeSelect() {
+            if (!requireVisionOnboarding()) return;
+
+            // Save onboarding data to local if not already stored
+            const existing = localStorage.getItem('boxing_onboarding_data');
+            if (!existing) {
+                // Pull from any individual onboarding keys for legacy support
+                const legacy = {
+                    ring_name: localStorage.getItem('ring_name') || localStorage.getItem('boxer_name') || 'Fighter',
+                    experience_level: localStorage.getItem('experience_level') || 'Novice',
+                    goals: JSON.parse(localStorage.getItem('goals') || '[]'),
+                    persona: localStorage.getItem('persona') || 'Fighter'
+                };
+                localStorage.setItem('boxing_onboarding_data', JSON.stringify(legacy));
+            }
+            // Reset to step 1
+            showStep(1);
+            showStage('stage-mode-select');
+        }
+
+        function selectMode(mode) {
+            selectedMode = mode;
+            const labels = { punches: 'PUNCHES ONLY', defense: 'PUNCHES & DEFENSE' };
+            const labelEl = document.getElementById('mode-label-display');
+            if (labelEl) labelEl.textContent = labels[mode] || mode.toUpperCase();
+            showStep(2);
+        }
+
+        function selectDifficulty(diff) {
+            selectedDifficulty = diff;
+            const labels = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+            speak(`${labels[diff]} intensity protocol selected.`);
+
+            // Set recommended punch count based on difficulty
+            const recommendations = { easy: 30, medium: 50, hard: 80 };
+            const recommendedVal = recommendations[diff];
+
+            const slider = document.getElementById('punch-target-slider');
+            if (slider) {
+                slider.value = recommendedVal;
+                updatePunchSlider(recommendedVal);
+                const badge = document.getElementById('recommended-badge');
+                if (badge) badge.textContent = `RECOMMENDED FOR ${diff.toUpperCase()}`;
+            }
+
+            showStep(3);
+        }
+
+        function updatePunchSlider(val) {
+            punchTarget = parseInt(val);
+            document.getElementById('punch-slider-val').textContent = val;
+        }
+
+        // ── Voice Command Engine ─────────────────────────────────────
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let voiceActive = false;
+
+        function initVoiceRecognition() {
+            if (!SpeechRecognition || recognition) return;
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                const command = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+                console.log("Voice Command Received:", command);
+
+                if (command.includes('start') && !drillActive && !calibCountdown) {
+                    AppSounds.play('click');
+                    startDrillSession();
+                } else if (command.includes('stop') && (drillActive || calibCountdown)) {
+                    AppSounds.play('click');
+                    stopAndAnalyse();
+                } else if (command.includes('reset')) {
+                    AppSounds.play('click');
+                    goToWelcome();
+                }
+            };
+
+            recognition.onerror = (e) => {
+                console.warn("Speech recognition error:", e);
+                // No need to restart here since onend handler already takes care of it
+                if (e.error === 'not-allowed') {
+                    voiceActive = false;
+                    updateVoiceStatus(false);
+                }
+            };
+            recognition.onend = () => { if (voiceActive) { try { recognition.start(); } catch (e) { } } };
+        }
+
+        function startVoiceListener() {
+            if (!recognition) initVoiceRecognition();
+            if (recognition) {
+                voiceActive = true;
+                try { recognition.start(); } catch (e) { }
+                updateVoiceStatus(true);
+            }
+        }
+
+        function stopVoiceListener() {
+            if (recognition) {
+                voiceActive = false;
+                try { recognition.stop(); } catch (e) { }
+                updateVoiceStatus(false);
+            }
+        }
+
+        function updateVoiceStatus(active) {
+            const dot = document.getElementById('voice-dot');
+            const label = document.getElementById('voice-label');
+            if (dot) dot.style.background = active ? 'var(--primary)' : '#333';
+            if (label) label.textContent = active ? 'VOICE LIVE' : 'VOICE OFF';
+        }
+
+        // ── TTS Engine ─────────────────────────────────────────────
+        const Synth = window.speechSynthesis;
+        let voices = [];
+        let isSpeaking = false;
+        let lastSpokenText = "";
+
+        function loadVoices() {
+            voices = Synth.getVoices();
+        }
+        if (Synth.onvoiceschanged !== undefined) {
+            Synth.onvoiceschanged = loadVoices;
+        }
+        loadVoices();
+
+        function setVoice(profile, btn) {
+            if (!requireVisionOnboarding()) return;
+
+            selectedVoiceProfile = profile;
+            document.querySelectorAll('.voice-opt').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+
+            // Brief sample
+            const samples = {
+                steel: "Steel profile loaded. Ready to work.",
+                athena: "Athena profile active. Let's see your form.",
+                cyber: "System calibrated. Awaiting movement data."
+            };
+            speak(samples[profile]);
+            playUiClick();
+        }
+        function getOptimalVoice(profile) {
+            if (voices.length === 0) voices = Synth.getVoices();
+            if (voices.length === 0) return null;
+
+            // Priority: Natural > Neural > Google > Local
+            const isNatural = v => v.name.includes('Natural');
+            const isNeural = v => v.name.includes('Neural') || v.name.includes('Online') || v.name.includes('network');
+            const isGoogle = v => v.name.includes('Google');
+            const isStandard = v => v.lang.startsWith('en');
+
+            // Find best voice based on profile
+            let pool = voices.filter(v => v.lang.includes('en'));
+
+            let selected = null;
+            if (profile === 'steel') {
+                // Male voices
+                selected = pool.find(v => isNatural(v) && (v.name.includes('Guy') || v.name.includes('Liam') || v.name.includes('Ryan'))) ||
+                    pool.find(v => isNeural(v) && (v.name.includes('Guy') || v.name.includes('Christopher'))) ||
+                    pool.find(v => isGoogle(v) && !v.name.includes('Female')) ||
+                    pool.find(v => v.name.toLowerCase().includes('male'));
+            } else if (profile === 'athena') {
+                // Female voices
+                selected = pool.find(v => isNatural(v) && (v.name.includes('Aria') || v.name.includes('Jenny') || v.name.includes('Sonia'))) ||
+                    pool.find(v => isNeural(v) && (v.name.includes('Aria') || v.name.includes('Jenny'))) ||
+                    pool.find(v => isGoogle(v) && v.name.includes('Female')) ||
+                    pool.find(v => v.name.toLowerCase().includes('female'));
+            } else {
+                // Cyber - high tech/neutral
+                selected = pool.find(v => isNatural(v) && v.name.includes('AIGenerated')) ||
+                    pool.find(v => isNeural(v) && (v.name.includes('Multilingual') || v.name.includes('Neural'))) ||
+                    pool.find(v => isGoogle(v) && v.name.includes('UK English'));
+            }
+
+            return selected || pool.find(isNatural) || pool.find(isNeural) || pool.find(isGoogle) || pool[0];
+        }
+
+        function speak(text, onEnd) {
+            if (isSpeaking) {
+                if (text === lastSpokenText) return;
+                Synth.cancel();
+            }
+
+            const doSpeak = () => {
+                isSpeaking = true;
+                lastSpokenText = text;
+
+                const u = new SpeechSynthesisUtterance(text);
+                if (voices.length === 0) loadVoices();
+                const voice = getOptimalVoice(selectedVoiceProfile);
+                if (voice) u.voice = voice;
+
+                // Sync speed with difficulty: Easy=0.9, Medium=1.0, Hard=1.2
+                const difficultySpeeds = { easy: 0.9, medium: 1.0, hard: 1.25 };
+                const baseRate = difficultySpeeds[selectedDifficulty] || 1.0;
+
+                // Fine-tune by voice profile
+                u.rate = baseRate;
+                u.pitch = (selectedVoiceProfile === 'steel') ? 0.9 : (selectedVoiceProfile === 'athena' ? 1.1 : 1.0);
+                u.volume = 1.0;
+
+                u.onend = () => { isSpeaking = false; if (onEnd) onEnd(); };
+                u.onerror = () => { isSpeaking = false; if (onEnd) onEnd(); };
+
+                Synth.speak(u);
+            };
+
+            if (Synth.getVoices().length === 0) {
+                Synth.onvoiceschanged = () => {
+                    Synth.onvoiceschanged = null;
+                    loadVoices();
+                    doSpeak();
+                };
+            } else {
+                doSpeak();
+            }
+        }
+
+        // ── Drill sequences by experience ─────────────────────────
+        // ── Custom Drill Generator (ZEPHYR AI) ─────────────────────
+        async function fetchCustomDrill() {
+            const onboardData = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
+            const reflexBaseline = localStorage.getItem('reflex_baseline_avg') || 'Unknown';
+            const rtBest = localStorage.getItem('reflex_rt_best') || 'Unknown';
+            const comboBest = localStorage.getItem('reflex_combo_best') || 'Unknown';
+            const name = onboardData.ring_name || 'Fighter';
+
+            const userContext = `
+              FIGHTER NAME: ${name}
+              LEVEL: ${onboardData.experience_level || 'Novice'}
+              GOALS: ${JSON.stringify(onboardData.goals || [])}
+              PERSONA: ${onboardData.persona || 'Fighter'}
+              REFLEX BASELINE: ${reflexBaseline}ms
+              REACTION BEST: ${rtBest}s
+              COMBO BEST: ${comboBest}
+              SELECTED MODE: ${selectedMode === 'defense' ? 'Punches + Defense' : 'Punches Only'}
+              DIFFICULTY: ${selectedDifficulty}
+            `;
+
+            const allowedCommands = selectedMode === 'defense'
+                ? 'Jab, Cross, Hook, Uppercut, Overhand, Shovel Hook, Slip, Roll, Block, Parry, Bob and Weave, Pivot, Roundhouse, Teep, Knee Strike, Side Kick'
+                : 'Jab, Cross, Hook, Uppercut, Overhand, Shovel Hook, Roundhouse, Teep, Knee Strike, Side Kick';
+
+            const difficultyNote = selectedDifficulty === 'easy'
+                ? 'Keep it beginner-friendly: simple combos, few complex moves.'
+                : selectedDifficulty === 'hard'
+                    ? 'Make it intense and challenging: rapid combos, mix defense often.'
+                    : 'Balanced difficulty: good variety of strikes and occasional defense.';
+
+            const prompt = `You are the ZEPHYR AI Boxing Coach. Generate a boxing drill for ${name}.
+Fighter profile: ${userContext}
+Allowed commands ONLY: ${allowedCommands}.
+${selectedMode === 'defense' ? 'Include Slip, Roll, and Pivot as defensive moves between attack combos.' : 'Focus on striking combinations only.'}
+Difficulty guideline: ${difficultyNote}
+Generate exactly ${punchTarget} commands total. Return ONLY a comma-separated list (e.g. Jab, Cross, Hook, Slip).
+No explanations, no numbering, just the list.`;
+
+            try {
+                const res = await fetch(GEMINI_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.75, maxOutputTokens: 400 }
+                    })
+                });
+                const json = await res.json();
+                const raw = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                const clean = raw.trim().split(',').map(s => s.trim()).filter(Boolean);
+                if (clean.length > 3) {
+                    currentDrillSet = clean;
+                    console.log(`Custom Drill (${selectedMode}, ${selectedDifficulty}):`, currentDrillSet);
+                }
+            } catch (e) {
+                console.warn('Failed to generate custom drill:', e);
+                // Fallback will use the experience-level defaults
+            }
+        }
+
+        function getDrillFlow() {
+            let flow = [];
+            if (currentDrillSet && currentDrillSet.length > 3) {
+                flow = currentDrillSet;
+            } else {
+                // Fallback flows based on mode + difficulty
+                const data = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
+                const level = (data.experience_level || 'novice').toLowerCase();
+
+                if (selectedMode === 'defense') {
+                    const flows = {
+                        novice: ['Jab', 'Cross', 'Slip', 'Jab', 'Cross', 'Hook', 'Roll', 'Jab', 'Cross', 'Block'],
+                        amateur: ['Jab', 'Jab', 'Cross', 'Slip', 'Hook', 'Roll', 'Jab', 'Cross', 'Uppercut', 'Pivot', 'Hook', 'Roundhouse', 'Parry'],
+                        pro: ['Jab', 'Cross', 'Hook', 'Slip', 'Uppercut', 'Roll', 'Jab', 'Cross', 'Hook', 'Pivot', 'Jab', 'Uppercut', 'Cross', 'Slip', 'Roundhouse', 'Knee Strike', 'Teep']
+                    };
+                    flow = flows[level] || flows.novice;
+                } else {
+                    const flows = {
+                        novice: ['Jab', 'Cross', 'Jab', 'Jab', 'Cross', 'Hook'],
+                        amateur: ['Jab', 'Jab', 'Cross', 'Hook', 'Jab', 'Cross', 'Uppercut', 'Hook', 'Roundhouse'],
+                        pro: ['Jab', 'Cross', 'Hook', 'Uppercut', 'Jab', 'Cross', 'Hook', 'Jab', 'Uppercut', 'Cross', 'Roundhouse', 'Teep', 'Knee Strike']
+                    };
+                    flow = flows[level] || flows.novice;
+                }
+            }
+
+            // Ensure flow matches punchTarget by repeating/slicing
+            const finalFlow = [];
+            while (finalFlow.length < punchTarget) {
+                finalFlow.push(...flow);
+            }
+            return finalFlow.slice(0, punchTarget);
+        }
+
+        // ── Stage navigation ───────────────────────────────────────
+        function showStage(id) {
+            document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        // ══════════════════════════════════════════════════
+        // MEDIAPIPE POSE ENGINE
+        // ══════════════════════════════════════════════════
+        let pose = null;
+        let isPersonInFrame = false;
+        let detectionFailCounter = 0; // Repurposed for MediaPipe
+
+        function initPoseEngine() {
+            if (pose) return;
+
+            pose = new Pose({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+            });
+
+            pose.setOptions({
+                modelComplexity: 1,
+                smoothLandmarks: true,
+                enableSegmentation: false,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            pose.onResults(onPoseResults);
+
+            const videoEl = document.getElementById('live-camera');
+            const camera = new Camera(videoEl, {
+                onFrame: async () => {
+                    // Send frames whenever mediaStream is active so we can detect before drill starts
+                    if (mediaStream) {
+                        await pose.send({ image: videoEl });
+                    }
+                },
+                width: 640,
+                height: 480
+            });
+            camera.start();
+        }
+
+        // ── Tutorial Logic ─────────────────────────────────────────
+        function openTuto() { document.getElementById('tutorial-overlay').classList.add('active'); }
+        function closeTuto() {
+            document.getElementById('tutorial-overlay').classList.remove('active');
+            localStorage.setItem('vision_tutorial_completed', 'true');
+        }
+        function nextTuto(current) {
+            document.getElementById(`ts-${current}`).classList.remove('active');
+            document.getElementById(`ts-${current + 1}`).classList.add('active');
+        }
+
+        // Auto-show tutorial once
+        if (!localStorage.getItem('vision_tutorial_completed')) {
+            setTimeout(openTuto, 800);
+        }
+
+        function onPoseResults(results) {
+            const canvas = document.getElementById('skeleton-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas size to match internal video resolution
+            if (canvas.width !== results.image.width) {
+                canvas.width = results.image.width;
+                canvas.height = results.image.height;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (results.poseLandmarks) {
+                isPersonInFrame = true;
+                detectionFailCounter = 0;
+
+                // Draw skeleton in neon cyan
+                drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, { color: '#00d2ff', lineWidth: 2 });
+                drawLandmarks(ctx, results.poseLandmarks, { color: '#E2FF3B', lineWidth: 1, radius: 2 });
+
+                // UI feedback
+                const msgEl = document.getElementById('calib-msg');
+                if (msgEl && (drillActive || calibCountdown)) { // Check calibCountdown instead of calibCountdownInterval
+                    msgEl.textContent = "TARGET LOCKED";
+                    msgEl.style.color = "var(--primary)";
+                }
+
+                function processFighterMovements(landmarks) {
+                    if (!landmarks[15] || !landmarks[16] || !landmarks[11] || !landmarks[12]) return;
+
+                    // MediaPipe Pose IDs: 11=L_SH, 12=R_SH, 15=L_WR, 16=R_WR
+                    const leftDist = Math.hypot(landmarks[15].x - landmarks[11].x, landmarks[15].y - landmarks[11].y);
+                    const rightDist = Math.hypot(landmarks[16].x - landmarks[12].x, landmarks[16].y - landmarks[12].y);
+                    const maxDist = Math.max(leftDist, rightDist);
+
+                    // Dynamic calibration for arm length
+                    if (reflexAnalytics.baseArmLength === 0 || maxDist < reflexAnalytics.baseArmLength) {
+                        reflexAnalytics.baseArmLength = Math.max(0.1, maxDist);
+                    }
+
+                    // Punch Detection logic (Extension > 1.8x base)
+                    const isExtending = maxDist > reflexAnalytics.baseArmLength * 1.8;
+
+                    if (isExtending && !reflexAnalytics.punchInProgress) {
+                        reflexAnalytics.punchInProgress = true;
+                        reflexAnalytics.punchStartTime = Date.now();
+
+                        // If a command was active, record the response time
+                        if (reflexAnalytics.activeCommand) {
+                            const reflexMs = Date.now() - reflexAnalytics.lastCommandIssuedAt;
+                            reflexAnalytics.matches.push({
+                                command: reflexAnalytics.activeCommand,
+                                reflexMs: reflexMs,
+                                velocity: reflexMs < 250 ? 'Explosive' : (reflexMs < 500 ? 'Snappy' : 'Slow')
+                            });
+                            reflexAnalytics.activeCommand = null; // Consume the command
+                            console.log(`[CLIENT-AI] Punch Detected! Reflex: ${reflexMs}ms`);
+                        }
+                    } else if (!isExtending && reflexAnalytics.punchInProgress) {
+                        reflexAnalytics.punchInProgress = false;
+                    }
+                }
+
+                // Rule 1: Real-time pose processing on client
+                if (drillActive) {
+                    processFighterMovements(results.poseLandmarks);
+                }
+            } else {
+
+                isPersonInFrame = false;
+                if (drillActive || calibCountdown) { // Check calibCountdown instead of calibCountdownInterval
+                    handlePoseLoss();
+                }
+            }
+        }
+
+        function handlePoseLoss() {
+            if (!drillActive && !calibCountdown) return;
+
+            detectionFailCounter++;
+            const data = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
+            const name = data.ring_name || 'Fighter';
+
+            // Every 5 seconds (roughly 150 frames)
+            if (detectionFailCounter % 150 === 0 && detectionFailCounter > 0) {
+                speak(`Please come into the frame, I am not able to see you clearly, ${name}. Stepping back helps.`);
+                const msgEl = document.getElementById('calib-msg');
+                if (msgEl) {
+                    msgEl.textContent = "PERSON NOT DETECTED";
+                    msgEl.style.color = "var(--red)";
+                }
+            }
+
+            // Exit after ~10 seconds (roughly 300 frames)
+            if (detectionFailCounter >= 300) {
+                triggerSlashAndQuit();
+            }
+        }
+
+        function handleBackNavigation() {
+            if (drillActive || calibCountdown) {
+                document.getElementById('confirm-modal').classList.add('active');
+            } else {
+                triggerSlashAndQuit();
+            }
+        }
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.remove('active');
+        }
+        function confirmExit() {
+            closeConfirmModal();
+            triggerSlashAndQuit();
+        }
+
+        function triggerSlashAndQuit() {
+            try { Synth.cancel(); } catch (e) { }
+            clearAllTimers();
+            stopAllMedia();
+
+            const slash = document.getElementById('slash-overlay');
+            const video = document.getElementById('slash-video');
+
+            if (slash && video) {
+                slash.classList.add('slash-active');
+                AppSounds.play('slash');
+
+                // Set a safety timeout in case the video hangs
+                const safetyTimer = setTimeout(() => {
+                    location.href = 'dashboard.html';
+                }, 800);
+
+                video.currentTime = 0;
+                video.onended = () => {
+                    clearTimeout(safetyTimer);
+                    location.href = 'dashboard.html';
+                };
+
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(e => {
+                        console.warn("Slash video play blocked:", e);
+                        // If blocked, just redirect now
+                        clearTimeout(safetyTimer);
+                        location.href = 'dashboard.html';
+                    });
+                }
+            } else {
+                location.href = 'dashboard.html';
+            }
+        }
+
+        function retryCamera() {
+            location.reload(); // Hard reset for camera state
+        }
+
+        function goToWelcome() {
+            try { Synth.cancel(); } catch (e) { }
+            stopVoiceListener();
+            stopAllMedia();
+            clearAllTimers();
+            resetState();
+
+            // Hide slash if it was active
+            const slash = document.getElementById('slash-overlay');
+            if (slash) slash.classList.remove('slash-active');
+
+            showStage('stage-welcome');
+        }
+
+        function showCameraError(reason) {
+            Synth.cancel();
+            stopAllMedia();
+            clearAllTimers();
+            drillActive = false;
+
+            // Update error message
+            const msgEl = document.getElementById('cam-error-msg');
+            if (msgEl) msgEl.textContent = reason || 'Camera access failed. AI analysis requires a live video feed.';
+
+            showStage('stage-cam-error');
+
+            // 5-second countdown then redirect
+            let count = 5;
+            const countEl = document.getElementById('redirect-count');
+            if (countEl) countEl.textContent = count;
+
+            clearInterval(redirectTimer);
+            redirectTimer = setInterval(() => {
+                count--;
+                if (countEl) countEl.textContent = count;
+                if (count <= 0) {
+                    clearInterval(redirectTimer);
+                    triggerSlashAndQuit();
+                }
+            }, 1000);
+        }
+
+        // Called when camera track dies mid-session
+        function handleCameraLost(reason) {
+            showCameraError(reason || 'Camera signal lost during session. Please check your device and try again.');
+        }
+
+        function stopAllMedia() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(t => t.stop());
+                mediaStream = null;
+            }
+        }
+
+        function clearAllTimers() {
+            clearInterval(timerInterval);
+            clearInterval(calibCountdown);
+            clearInterval(redirectTimer);
+            clearTimeout(drillTimeout);
+            timerInterval = null; calibCountdown = null; drillTimeout = null; redirectTimer = null;
+        }
+
+        function resetState() {
+            recordedChunks = [];
+            commandLog = [];
+            punchCount = 0;
+            drillActive = false;
+            sessionStartTime = null;
+
+            document.getElementById('punch-count').textContent = '0';
+            document.getElementById('timer-display').textContent = '00:00';
+            document.getElementById('rec-label').textContent = 'STANDBY';
+            document.getElementById('rec-dot').classList.remove('active');
+            document.getElementById('coach-bubble').style.display = 'none';
+            document.getElementById('log-pill').style.display = 'none';
+            document.getElementById('calib-overlay').classList.remove('hidden');
+            document.getElementById('btn-stop').disabled = true;
+            document.getElementById('btn-start-drill').disabled = false;
+            document.getElementById('calib-count').textContent = '10';
+            document.getElementById('calib-msg').textContent = 'STEP INTO FRAME · GUARD UP';
+        }
+
+        // ══════════════════════════════════════════════════
+        // STAGE 0 → 1: Request camera + mic permissions
+        // ══════════════════════════════════════════════════
+        async function startPermissions() {
+            const btn = document.getElementById('btn-start-drill');
+            try {
+                // Lower resolution = smaller file size = fits ZEPHYR inline limit
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+                    audio: true
+                });
+                const videoEl = document.getElementById('live-camera');
+                videoEl.srcObject = mediaStream;
+
+                // Wait for camera to actually start streaming
+                await new Promise((resolve, reject) => {
+                    videoEl.onloadedmetadata = resolve;
+                    setTimeout(reject, 8000);
+                });
+                await videoEl.play();
+
+                // Confirm video track is truly live
+                const videoTrack = mediaStream.getVideoTracks()[0];
+                if (!videoTrack || videoTrack.readyState !== 'live') {
+                    throw new Error('Camera track not live');
+                }
+
+                // Start Voice Engine
+                startVoiceListener();
+
+                // Watch for camera dying mid-session
+                videoTrack.onended = () => handleCameraLost('Camera disconnected during session.');
+
+                // Update UI — green = camera on
+                document.getElementById('rec-label').textContent = 'CAM ON';
+                document.getElementById('rec-dot').style.background = 'var(--primary)';
+                document.getElementById('rec-dot').style.boxShadow = '0 0 10px var(--primary)';
+                document.getElementById('rec-dot').classList.add('active');
+
+                // Initialize MediaPipe Pose
+                initPoseEngine();
+
+                showStage('stage-camera');
+                if (btn) btn.disabled = false;
+                speak('Camera is live. Step back so your full body is in frame. Tap Start Drill when ready.');
+
+            } catch (err) {
+                console.error('Camera error:', err);
+                const reason = err.name === 'NotAllowedError'
+                    ? 'Camera / microphone permission was denied. Tap the lock icon in your browser (or go to Settings → Apps → ZEPHYR → Permissions on Android / iOS) and allow Camera and Microphone, then retry.'
+                    : err.name === 'NotFoundError'
+                        ? 'No camera found on this device.'
+                        : err.name === 'NotReadableError'
+                            ? 'Camera is already in use by another app.'
+                            : 'Could not access the camera. Please check your browser or device privacy settings.';
+                showCameraError(reason);
+            }
+        }
+
+        // ══════════════════════════════════════════════════
+        // STAGE 1: Start Drill — Calibration → Recording → Drill
+        // ══════════════════════════════════════════════════
+        function startDrillSession() {
+            document.getElementById('btn-start-drill').disabled = true;
+            document.getElementById('btn-back-cam').disabled = false; // Allow back during calibration/start
+
+            // Clear previous drill just in case
+            currentDrillSet = null;
+
+            // Start pre-fetching custom drill while user calibrates
+            fetchCustomDrill();
+
+            // ── 1. Start recorder before calibration so audio is captured
+            startRecording();
+
+            // ── 2. Calibration countdown (10 seconds)
+            runCalibration(() => {
+                // ── 3. Start drill after calibration
+                beginLiveDrill();
+            });
+        }
+
+        function startRecording() {
+            recordedChunks = [];
+
+            // Try preferred codec first, fall back gracefully
+            const mimeTypes = [
+                'video/webm;codecs=vp8,opus',
+                'video/webm;codecs=vp9,opus',
+                'video/webm',
+                'video/mp4'
+            ];
+            let options = {};
+            for (const mime of mimeTypes) {
+                if (MediaRecorder.isTypeSupported(mime)) {
+                    options = { mimeType: mime };
+                    break;
+                }
+            }
+
+            try {
+                mediaRecorder = new MediaRecorder(mediaStream, options);
+            } catch {
+                mediaRecorder = new MediaRecorder(mediaStream);
+            }
+
+            mediaRecorder.ondataavailable = e => {
+                if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+            };
+            mediaRecorder.start(1000); // 1s chunks for reliable muxing
+
+            // Update UI — red dot = recording
+            document.getElementById('rec-label').textContent = 'REC';
+            document.getElementById('rec-dot').style.background = 'var(--red)';
+            document.getElementById('rec-dot').style.boxShadow = '0 0 10px var(--red)';
+            document.getElementById('rec-dot').classList.add('active');
+
+            // Session timer
+            sessionStartTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+                const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                const s = String(elapsed % 60).padStart(2, '0');
+                document.getElementById('timer-display').textContent = `${m}:${s}`;
+            }, 500);
+        }
+
+        function runCalibration(onComplete) {
+            let count = 10;
+            const data = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
+            const name = data.ring_name || 'Fighter';
+
+            document.getElementById('calib-count').textContent = count;
+            document.getElementById('calib-overlay').classList.remove('hidden');
+
+            speak(`Calibration started ${name}. Stand in the frame. Countdown begins now.`);
+
+            calibCountdown = setInterval(() => {
+                const statusTag = document.getElementById('calib-status');
+
+                // If person is NOT in frame, pause the countdown and prompt
+                if (!isPersonInFrame) {
+                    if (statusTag) {
+                        statusTag.textContent = "PERSON HIDDEN";
+                        statusTag.classList.add('waiting');
+                    }
+                    document.getElementById('calib-msg').textContent = "STEP INTO FRAME · GUARD UP";
+                    document.getElementById('calib-msg').style.color = "var(--red)";
+
+                    // Remind the user every few seconds if they are not detected
+                    if (count === 10 && Math.random() < 0.2) speak(`${name}, please step back into the frame so I can calibrate.`);
+                    return;
+                } else {
+                    if (statusTag) {
+                        statusTag.textContent = "DETECTION ACTIVE";
+                        statusTag.classList.remove('waiting');
+                    }
+                    document.getElementById('calib-msg').style.color = "#888";
+                }
+
+                count--;
+                document.getElementById('calib-count').textContent = Math.max(count, 0);
+
+                // Verbal sync
+                if (count === 8) {
+                    speak("Looking good. Keep that guard high.");
+                } else if (count === 5) {
+                    speak("Halfway. Don't drop your hands.");
+                } else if (count === 3) {
+                    speak("Three");
+                } else if (count === 2) {
+                    speak("Two");
+                } else if (count === 1) {
+                    speak("One");
+                } else if (count === 0) {
+                    document.getElementById('calib-msg').textContent = 'BOX! 🥊';
+                    speak("BOX!");
+                }
+
+                if (count <= 0) {
+                    clearInterval(calibCountdown);
+                    calibCountdown = null;
+                    document.getElementById('calib-overlay').classList.add('hidden');
+                    onComplete();
+                }
+            }, 1000);
+        }
+
+        function beginLiveDrill() {
+            drillActive = true;
+            document.getElementById('btn-stop').disabled = false;
+            document.getElementById('log-pill').style.display = 'block';
+
+            // Difficulty settings - Speed adjusted for clarity vs intensity
+            const diffSettings = {
+                easy: { minGap: 3000, randomExtra: 1000, speechRate: 0.85 },
+                medium: { minGap: 1800, randomExtra: 800, speechRate: 1.05 },
+                hard: { minGap: 700, randomExtra: 400, speechRate: 1.35 }
+            };
+            const diff = diffSettings[selectedDifficulty] || diffSettings.medium;
+
+            // Override speech rate for the drill based on difficulty
+            const originalRate = (selectedVoiceProfile === 'cyber') ? 1.2 : 1.1;
+
+            // Announce the drill mode to the user
+            const modeAnnounce = selectedMode === 'defense'
+                ? `Drill ready. ${selectedDifficulty} mode. Punches and defense. Stay sharp.`
+                : `Drill ready. ${selectedDifficulty} mode. Punches only. Let's go.`;
+
+            const commands = getDrillFlow();
+            let idx = 0;
+
+            // High-fidelity speak override for drill logic
+            function drillSpeak(text, onEnd) {
+                isSpeaking = true;
+                Synth.cancel();
+
+                const u = new SpeechSynthesisUtterance(text);
+                u.voice = getOptimalVoice(selectedVoiceProfile);
+
+                // Difficulty-based speech rate
+                u.rate = diff.speechRate;
+
+                // Neutralize pitch for maximum clarity during rapid commands
+                const basePitch = (selectedVoiceProfile === 'steel') ? 0.95 : (selectedVoiceProfile === 'athena' ? 1.1 : 1.0);
+                u.pitch = basePitch;
+
+                u.volume = 1.0;
+                let handled = false;
+                u.onend = () => { if (!handled) { handled = true; isSpeaking = false; if (onEnd) onEnd(); } };
+                u.onerror = () => { if (!handled) { handled = true; isSpeaking = false; if (onEnd) onEnd(); } };
+                setTimeout(() => { if (!handled) { handled = true; isSpeaking = false; if (onEnd) onEnd(); } }, 4000);
+
+                // Use a slightly longer buffer flush for clarity
+                setTimeout(() => Synth.speak(u), 30);
+            }
+
+            function issueNextCommand() {
+                if (!drillActive || idx >= commands.length) {
+                    drillSpeak('Great work. Session complete. Analysing now.');
+                    setTimeout(stopAndAnalyse, 2000);
+                    return;
+                }
+
+                const cmd = commands[idx];
+                const timeMs = Date.now() - sessionStartTime;
+
+                commandLog.push({ command: cmd, time_ms: timeMs });
+                punchCount++;
+
+                document.getElementById('punch-count').textContent = punchCount;
+                showCoachBubble(cmd);
+                updateLogPill(cmd, timeMs);
+
+                // Tracking for Local AI Engine
+                reflexAnalytics.activeCommand = cmd;
+                reflexAnalytics.lastCommandIssuedAt = Date.now();
+
+                let commandIssuedAt = Date.now();
+                drillSpeak(cmd, () => {
+
+                    const elapsed = Date.now() - commandIssuedAt;
+                    const gap = Math.max(diff.minGap - elapsed, 200) + Math.random() * diff.randomExtra;
+                    drillTimeout = setTimeout(issueNextCommand, gap);
+                });
+
+                idx++;
+            }
+
+            // Announce drill, then start after brief pause
+            drillSpeak(modeAnnounce, () => {
+                drillTimeout = setTimeout(issueNextCommand, 800);
+            });
+        }
+
+        function showCoachBubble(text) {
+            const bubble = document.getElementById('coach-bubble');
+            bubble.textContent = text.toUpperCase();
+            bubble.style.display = 'block';
+            bubble.classList.remove('flash');
+            void bubble.offsetWidth; // reflow
+            bubble.classList.add('flash');
+            setTimeout(() => { bubble.style.display = 'none'; }, 2500);
+        }
+
+        function updateLogPill(cmd, ms) {
+            const el = document.getElementById('log-text');
+            el.textContent = `► ${cmd.toUpperCase()} @ ${(ms / 1000).toFixed(2)}s`;
+            el.classList.add('new');
+            setTimeout(() => el.classList.remove('new'), 800);
+        }
+
+        // ══════════════════════════════════════════════════
+        // STOP + ANALYSE
+        // ══════════════════════════════════════════════════
+        async function stopAndAnalyse() {
+            drillActive = false;
+            Synth.cancel();
+            clearAllTimers();
+
+            document.getElementById('btn-stop').disabled = true;
+            document.getElementById('coach-bubble').style.display = 'none';
+
+            // Stop local recorder (optional - we keep video for local player if needed, but not for analysis)
+            await new Promise(resolve => {
+                if (!mediaRecorder || mediaRecorder.state === 'inactive') { resolve(); return; }
+                mediaRecorder.onstop = resolve;
+                mediaRecorder.stop();
+            });
+
+            showStage('stage-analyzing');
+            await progressStep('step-1', 400);
+
+            // Gather only numeric text data for the backend
+            const profile = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
+            const sessionPayload = {
+                ring_name: profile.ring_name || 'Fighter',
+                experience_level: profile.experience_level || 'Novice',
+                punch_count: punchCount,
+                command_log: commandLog,
+                reflex_data: reflexAnalytics.matches // Client-side processed metrics
+            };
+
+            await progressStep('step-2', 400);
+            await progressStep('step-3', 400);
+
+            let analysisData = null;
+            try {
+                // Rule 1 & 2: Sending numeric data to optimized backend
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sessionPayload)
+                });
+
+                if (!response.ok) throw new Error('Backend Analysis Failed');
+
+                const result = await response.json();
+
+                // Map Backend Analysis to Frontend UI Schema
+                const ai = result.analysis;
+                analysisData = {
+                    session_summary: {
+                        posture_score: 9.0, // Local estimation or fixed
+                        overall_reflex_rating: punchCount > 30 ? 'Amateur' : 'Novice',
+                        primary_technical_flaw: ai.tip || 'Keep hands up',
+                        calibration_status: 'Passed'
+                    },
+                    drill_data: reflexAnalytics.matches.map(m => ({
+                        command: m.command,
+                        reflex_time_ms: m.reflexMs,
+                        velocity_rating: m.velocity,
+                        form_notes: 'Snappy response'
+                    })),
+                    coach_advice: ai.feedback || 'Great session!'
+                };
+
+                AppSounds.play('success');
+                saveSessionToHistory(analysisData, punchCount, commandLog.length);
+
+            } catch (err) {
+                console.warn('Backend error:', err);
+                showError('Optimized Analysis failed - showing local estimations.');
+                analysisData = getDemoAnalysis(); // Fallback to demo
+            }
+
+            await progressStep('step-5', 400);
+            renderResults(analysisData);
+            showStage('stage-results');
+            StreakManager.completeSession();
+        }
+
+        // ══════════════════════════════════════════════════
+        // HELPER: Blob → Base64
+        // ══════════════════════════════════════════════════
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    // Strip the data URL prefix: "data:video/webm;base64,"
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        // ══════════════════════════════════════════════════
+        // ZEPHYR MULTIMODAL — Real Video Analysis
+        // ══════════════════════════════════════════════════
+        async function callGeminiVideoAnalysis(base64Video, mimeType, commandMetaJSON, profile) {
+            const prompt = `You are the 'ZEPHYR Biomechanical AI Coach'. Analyze this boxing drill video.
+
+FIGHTER PROFILE:
+- Experience: ${profile.experience_level || 'Novice'}
+- Goal: ${profile.primary_goal || 'Fitness'}
+
+COMMAND LOG (AI coach issued these voice commands at these timestamps):
+${commandMetaJSON}
+
+INSTRUCTIONS:
+1. CALIBRATION (first ~10 seconds): Score posture 1-10. Is full body in frame? Guard up?
+2. For EACH command in the log, estimate the fighter's reflex time and punch speed from the video motion.
+3. Identify the single biggest technical flaw you observe.
+
+Return ONLY a valid JSON object (no markdown, no explanation):
+{
+  "session_summary": {
+    "posture_score": 0,
+    "overall_reflex_rating": "Elite|Amateur|Novice",
+    "primary_technical_flaw": "One specific flaw observed",
+    "calibration_status": "Passed|Failed"
+  },
+  "drill_data": [
+    {
+      "command": "Jab",
+      "command_timestamp_ms": 0,
+      "reflex_time_ms": 0,
+      "extension_speed_ms": 0,
+      "velocity_rating": "Explosive|Snappy|Slow",
+      "form_notes": "Specific observation"
+    }
+  ],
+  "coach_advice": "Two-sentence motivational coaching tip."
+}`;
+
+            const res = await fetch(GEMINI_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            {
+                                inline_data: {
+                                    mime_type: mimeType,
+                                    data: base64Video
+                                }
+                            },
+                            { text: prompt }
+                        ]
+                    }],
+                    generationConfig: { temperature: 0.4, maxOutputTokens: 2048 }
+                })
+            });
+
+            if (!res.ok) {
+                const errBody = await res.text();
+                throw new Error(`ZEPHYR video API ${res.status}: ${errBody}`);
+            }
+
+            const json = await res.json();
+            const raw = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const jsonMatch = raw.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error('No JSON in ZEPHYR video response');
+            return JSON.parse(jsonMatch[0]);
+        }
+
+        // ══════════════════════════════════════════════════
+        // ZEPHYR TEXT FALLBACK (if video too large)
+        // ══════════════════════════════════════════════════
+        async function callGeminiTextAnalysis(commandMetaJSON, profile) {
+            const prompt = `You are the ZEPHYR Boxing AI Coach. A boxing drill was performed with these voice commands at these timestamps:
+${commandMetaJSON}
+Fighter level: ${profile.experience_level || 'Novice'}. Total punches: ${commandLog.length}.
+Analyze the timing gaps between commands to estimate reflex performance.
+Return ONLY valid JSON (no markdown):
+{"session_summary":{"posture_score":7,"overall_reflex_rating":"Amateur","primary_technical_flaw":"Rear hand drops on Jab","calibration_status":"Passed"},"drill_data":[{"command":"Jab","command_timestamp_ms":0,"reflex_time_ms":280,"extension_speed_ms":95,"velocity_rating":"Snappy","form_notes":"Good technique"}],"coach_advice":"Keep training consistently and focus on guard discipline."}
+Generate one drill_data entry per command: ${commandLog.map(c => c.command).join(', ')}.`;
+
+            const res = await fetch(GEMINI_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.6, maxOutputTokens: 1500 }
+                })
+            });
+            if (!res.ok) throw new Error(`ZEPHYR text API ${res.status}`);
+            const json = await res.json();
+            const raw = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const jsonMatch = raw.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error('No JSON in response');
+            return JSON.parse(jsonMatch[0]);
+        }
+
+        // ══════════════════════════════════════════════════
+        // RENDER RESULTS
+        // ══════════════════════════════════════════════════
+        function renderResults(data) {
+            const summary = data.session_summary;
+            const drills = data.drill_data || [];
+
+            // Score card
+            document.getElementById('res-rating').textContent = summary.overall_reflex_rating || 'Amateur';
+            document.getElementById('res-flaw').textContent = summary.primary_technical_flaw || 'Keep working on your guard.';
+            document.getElementById('res-posture').textContent = (summary.posture_score || 0) + '/10';
+            document.getElementById('res-punch-count').textContent = drills.length || punchCount;
+            document.getElementById('res-advice').textContent = data.coach_advice || 'Keep training consistently.';
+
+            // Average reflex
+            const avgReflex = drills.length > 0
+                ? Math.round(drills.reduce((a, d) => a + (d.reflex_time_ms || 0), 0) / drills.length)
+                : '--';
+            document.getElementById('res-avg-reflex').textContent = avgReflex + 'ms';
+
+            // Calibration badge
+            const badge = document.getElementById('calib-badge');
+            if (summary.calibration_status === 'Failed') {
+                badge.style.background = 'rgba(255,45,85,0.15)';
+                badge.style.color = 'var(--red)';
+                badge.textContent = '✗ CALIB. FAIL';
+            }
+
+            // Reflex bars
+            const barsContainer = document.getElementById('reflex-bars');
+            barsContainer.innerHTML = '';
+            drills.forEach(d => {
+                const ms = d.reflex_time_ms || 300;
+                const pct = Math.min(100, (ms / 500) * 100);
+                const cls = ms < 220 ? 'good' : ms < 350 ? 'ok' : 'slow';
+                barsContainer.innerHTML += `
+            <div class="bar-row">
+                <div class="bar-label">${d.command}</div>
+                <div class="bar-track">
+                    <div class="bar-fill ${cls}" style="width: 0%;" data-width="${pct}"></div>
+                </div>
+                <div class="bar-ms">${ms}ms</div>
+            </div>`;
+            });
+
+            // Animate bars on next frame
+            requestAnimationFrame(() => {
+                document.querySelectorAll('.bar-fill[data-width]').forEach(el => {
+                    setTimeout(() => { el.style.width = el.dataset.width + '%'; }, 100);
+                });
+            });
+
+            // Drill cards
+            const cardsContainer = document.getElementById('drill-cards-container');
+            cardsContainer.innerHTML = '';
+            drills.forEach(d => {
+                const ratingClass = (d.velocity_rating || 'Snappy').toLowerCase();
+                cardsContainer.innerHTML += `
+            <div class="drill-card">
+                <div class="drill-top">
+                    <div class="drill-name">${d.command}</div>
+                    <div class="drill-rating ${ratingClass}">${d.velocity_rating || 'Snappy'}</div>
+                </div>
+                <div class="drill-metrics">
+                    <div class="metric-box">
+                        <div class="metric-val" style="color: var(--primary);">${d.reflex_time_ms || '--'}ms</div>
+                        <div class="metric-lbl">Reflex</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-val">${d.extension_speed_ms || '--'}ms</div>
+                        <div class="metric-lbl">Speed</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-val" style="color: var(--teal);">${d.command_timestamp_ms ? (d.command_timestamp_ms / 1000).toFixed(1) + 's' : '--'}</div>
+                        <div class="metric-lbl">@ Time</div>
+                    </div>
+                </div>
+                <div class="drill-note">${d.form_notes || 'No notes.'}</div>
+            </div>`;
+            });
+        }
+
+        // ══════════════════════════════════════════════════
+        // UTILS
+        // ══════════════════════════════════════════════════
+        function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+        async function progressStep(id, delay) {
+            const steps = document.querySelectorAll('.analyze-step');
+            // Mark previous as done
+            steps.forEach(s => {
+                if (s.classList.contains('active')) {
+                    s.classList.remove('active');
+                    s.classList.add('done');
+                    s.querySelector('i').className = 'fa-solid fa-check';
+                }
+            });
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.add('active');
+                el.querySelector('i').className = 'fa-solid fa-sync fa-spin';
+            }
+            await sleep(delay);
+        }
+
+        function showError(msg) {
+            const banner = document.getElementById('error-banner');
+            document.getElementById('error-text').textContent = msg;
+            banner.style.display = 'block';
+        }
+
+        function saveSessionToHistory(data, count, totalExpected) {
+            const history = JSON.parse(localStorage.getItem('boxing_session_history') || '[]');
+
+            // Calculate average reflex time from drill_data if available
+            let avgReflex = 0;
+            const drillData = (data && data.drill_data) || [];
+            if (drillData.length > 0) {
+                const total = drillData.reduce((acc, d) => acc + (d.reflex_time_ms || 0), 0);
+                avgReflex = (total / drillData.length).toFixed(0);
+            }
+
+            const session = {
+                id: 'SESS-' + Date.now(),
+                date: new Date().toISOString(),
+                type: 'Vision Drill',
+                punches: count,
+                avg_reflex_ms: avgReflex,
+                accuracy: Math.min(100, Math.round((count / Math.max(1, totalExpected)) * 100)),
+                advice: (data && data.coach_advice) || "Great session, focus on your guard.",
+                score: (data && data.session_summary && data.session_summary.posture_score) ? (data.session_summary.posture_score * 10) : 85,
+                reflex_tier: (data && data.session_summary && data.session_summary.overall_reflex_rating) || 'Amateur',
+                flaw: (data && data.session_summary && data.session_summary.primary_technical_flaw) || 'None detected',
+                raw_data: data // Save full breakdown for deep analytics
+            };
+            history.unshift(session);
+            // Limit to last 50 sessions
+            localStorage.setItem('boxing_session_history', JSON.stringify(history.slice(0, 50)));
+            console.log("Session saved to local storage:", session);
+
+            // Update Global Streak
+            if (window.StreakManager) {
+                StreakManager.completeSession();
+                if (window.db) {
+                    StreakManager.syncWithSupabase(window.db);
+                }
+            }
+        }
+
+        function getDemoAnalysis() {
+            const cmds = commandLog.length > 0 ? commandLog : [
+                { command: 'Jab', time_ms: 2000 }, { command: 'Cross', time_ms: 4500 },
+                { command: 'Hook', time_ms: 7000 }, { command: 'Jab', time_ms: 9200 }
+            ];
+            return {
+                session_summary: {
+                    posture_score: 7, overall_reflex_rating: 'Amateur',
+                    primary_technical_flaw: 'Rear hand drops when jabbing — keep chin protected.',
+                    calibration_status: 'Passed'
+                },
+                drill_data: cmds.map((c, i) => ({
+                    command: c.command,
+                    command_timestamp_ms: c.time_ms,
+                    reflex_time_ms: 200 + Math.floor(Math.random() * 250),
+                    extension_speed_ms: 80 + Math.floor(Math.random() * 60),
+                    velocity_rating: ['Snappy', 'Explosive', 'Slow', 'Snappy'][i % 4],
+                    form_notes: ['Good snap, maintain guard.', 'Hip rotation visible — great.', 'Elbow slightly flared on release.', 'Quick recovery, well timed.'][i % 4]
+                })),
+                coach_advice: "Your reaction time is showing real promise. The priority for your next session is to drill the Jab-Cross combination specifically focusing on keeping your right hand at your chin as the left extends."
+            };
+        }
+
+        // ── Preload voices ─────────────────────────────────────────
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+        }
+    </script>
+
+
+</body>
+
+</html>

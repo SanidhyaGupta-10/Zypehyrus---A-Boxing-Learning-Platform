@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Frequency - AI Boxing Guru</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script type="module" crossorigin src="/assets/frequency-RM4pn3v3.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+  <link rel="stylesheet" crossorigin href="/assets/style-Dx3LiayG.css">
+</head>
+
+<body class="onboarding-body-lock onboarding-layout">
+    <div class="app-container dashboard-bg">
+        <div class="onboarding-content">
+            <div class="page animate-fade anim-slide-right"
+                style="padding: 0; min-height: auto; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                <header class="header animate-slide-up hover-scale" style="text-align: left; margin-bottom: 15px;">
+                    <div
+                        style="font-size: 0.8rem; font-weight: 800; letter-spacing: 4px; color: var(--primary); margin-bottom: 12px; text-transform: uppercase;">
+                        ONBOARDING 10/10</div>
+                    <h1 style="font-size: 2.3rem; font-weight: 700; line-height: 1.1; color: var(--text);">Weekly
+                        <br><span class="text-neon" style="font-style: italic;">Commitment</span>
+                    </h1>
+                    <p style="color: var(--text-muted); margin-top: 10px; font-size: 0.9rem; line-height: 1.4;">How many
+                        days a week do you plan to hit the floor?</p>
+                </header>
+
+                <main class="animate-slide-up hover-scale"
+                    style="animation-delay: 0.1s; flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-content: center;">
+                    <div class="freq-btn" onclick="selectFreq(this, 2)">
+                        <div class="freq-icon">02</div>
+                        <span>MAINTENANCE</span>
+                    </div>
+
+                    <div class="freq-btn active" onclick="selectFreq(this, 3)">
+                        <div class="freq-icon">03</div>
+                        <span>ACTIVE</span>
+                    </div>
+
+                    <div class="freq-btn" onclick="selectFreq(this, 5)">
+                        <div class="freq-icon">05</div>
+                        <span>CONTENDER</span>
+                    </div>
+
+                    <div class="freq-btn" onclick="selectFreq(this, 7)">
+                        <div class="freq-icon">07</div>
+                        <span>PRO LEVEL</span>
+                    </div>
+                </main>
+
+                <footer style="margin-top: 25px; text-align: center;">
+                    <button id="next-btn" class="btn-primary hover-scale"
+                        style="width: 100%; height: 75px; border-radius: 100px; font-size: 1.2rem;">
+                        CONFIRM FREQUENCY <i class="fa-solid fa-arrow-right" style="margin-left: 10px;"></i>
+                    </button>
+                    <a href="intensity.html"
+                        style="display: block; text-decoration: none; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 2px; font-size: 0.65rem; margin-top: 15px;">BACK</a>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .freq-btn {
+            background: rgba(255, 255, 255, 0.02);
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 25px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .freq-icon {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--primary);
+            opacity: 0.4;
+            transition: 0.3s;
+            font-style: italic;
+        }
+
+        .freq-btn span {
+            font-size: 0.7rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+        }
+
+        .freq-btn.active {
+            border-color: var(--primary);
+            background: rgba(var(--primary-rgb), 0.05);
+        }
+
+        .freq-btn.active .freq-icon {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .freq-btn.active span {
+            color: var(--primary);
+        }
+    </style>
+
+</body>
+
+</html>

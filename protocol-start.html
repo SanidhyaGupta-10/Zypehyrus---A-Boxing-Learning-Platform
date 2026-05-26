@@ -198,8 +198,7 @@
 
                 <div class="briefing-card">
                     <div class="briefing-title">MISSION BRIEFING</div>
-                    <p class="briefing-text" id="p-briefing">Calculated protocol based on your primary boxing dominance
-                        strategy. Focus on absolute precision and technical velocity.</p>
+                    <p class="briefing-text" id="p-briefing">Bodyweight-only session mapped to your weekly day split (push, pull, leg, endurance, strength). Execute each movement with control.</p>
                     <div class="meta-label" style="margin-top: 25px;">STRATEGIC IMPACT</div>
                     <div class="impact-meter">
                         <div class="impact-fill" style="width: 85%;"></div>
@@ -207,7 +206,7 @@
                 </div>
 
                 <button class="start-btn" id="deploy-btn">
-                    DEPLOY PROTOCOL <i class="fa-solid fa-bolt"></i>
+                    OPEN PROTOCOL <i class="fa-solid fa-bolt"></i>
                 </button>
 
                 <div class="loading-glitch" id="glitch-text">AUTHENTICATING_USER_X82...</div>
@@ -224,37 +223,26 @@
                         const day = plan.days[dayIdx];
                         const protocol = day.protocol[pIdx];
 
+                        const dayType = day.day_type || protocol.day_type || protocol.impact || '';
+                        const exerciseHtml = (protocol.exercises || []).length
+                            ? `<ul style="margin:16px 0 0;padding-left:18px;color:#aaa;font-size:0.85rem;line-height:1.6;">
+                                ${protocol.exercises.map((ex) => `<li>${ex}</li>`).join('')}
+                               </ul>`
+                            : '';
+
                         document.getElementById('protocol-mount').innerHTML = `
-                            <div class="protocol-type">${protocol.impact}</div>
+                            <div class="protocol-type">${dayType}</div>
                             <h1 class="protocol-main-title">${protocol.title.replace(': ', '<br>')}</h1>
+                            ${exerciseHtml}
                         `;
 
                         document.getElementById('p-duration').innerText = protocol.duration;
                         document.getElementById('p-time').innerText = protocol.time;
 
                         document.getElementById('deploy-btn').onclick = () => {
-                            // 1. Add to Deployed Planner Drills
-                            const todayKey = new Date().toDateString();
-                            const storageKey = 'deployed_planner_drills_' + todayKey;
-                            const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
-
-                            // Check if already deployed
-                            const isNew = !existing.some(d => d.title === protocol.title);
-                            if (isNew) {
-                                existing.push({
-                                    ...protocol,
-                                    deployed_at: Date.now(),
-                                    isPlanner: true
-                                });
-                                localStorage.setItem(storageKey, JSON.stringify(existing));
-                            }
-
-                            // 2. Play Sound
                             if (window.AppSounds) AppSounds.play('success');
-
-                            // 3. Redirect back to planner with success or go to dashboard
-                            alert("STRATEGY DEPLOYED: Drill added to today's Daily Grind.");
-                            window.location.href = 'dashboard.html';
+                            window.location.href =
+                                `protocol-session.html?day=${dayIdx}&p=${pIdx}`;
                         };
 
                         // Random fun glitch text

@@ -143,17 +143,36 @@
             peakWindow = windowName;
         }
 
+        (function loadSavedPlannerConfig() {
+            const data = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
+            const cfg = data.planner_config;
+            if (!cfg) return;
+            if (cfg.preferred_time) {
+                document.getElementById('session-time').value = cfg.preferred_time;
+            }
+            if (cfg.peak_window) {
+                peakWindow = cfg.peak_window;
+                document.querySelectorAll('.peak-card').forEach((card) => {
+                    const label = card.querySelector('span')?.innerText?.trim();
+                    card.classList.toggle('active', label === cfg.peak_window);
+                });
+            }
+        })();
+
         document.getElementById('next-btn').onclick = function () {
             const timeValue = document.getElementById('session-time').value;
+            if (!timeValue) {
+                alert('Select your preferred session start time.');
+                return;
+            }
             const data = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
 
             data.planner_config = {
                 peak_window: peakWindow,
-                preferred_time: timeValue
+                preferred_time: timeValue,
             };
 
             localStorage.setItem('boxing_onboarding_data', JSON.stringify(data));
-            // Redirect back to planner
             window.location.href = 'planner.html';
         };
     </script>

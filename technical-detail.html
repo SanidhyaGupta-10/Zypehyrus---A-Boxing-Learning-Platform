@@ -393,25 +393,31 @@
     </div>
 
     <!-- Data Source -->
+    <script src="guru-media.js"></script>
     <script src="techniques-data.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const id = urlParams.get('id');
-            const category = urlParams.get('cat') || 'TECHNIQUE';
+    <script type="module">
+        import { db } from './auth.js';
 
-            // Find data in techniquesData object
+        const GM = window.GuruMedia;
+
+        function buildCatalog(extraCustom) {
+            let combined = GM.hydrateCatalog(window.techniquesData || {});
+            GM.mergeCustomTechniques(combined, GM.loadLocalCustom());
+            if (extraCustom && extraCustom.length) {
+                GM.mergeCustomTechniques(combined, extraCustom);
+            }
+            return combined;
+        }
+
+        function findTechnique(combinedData, id) {
             let item = null;
-            let categoryKey = null; // e.g. 'punches', 'kicks'
-
-            // Search all arrays to find the item & its category key
-            for (const key in techniquesData) {
-                const found = techniquesData[key].find(t => t.id === id);
+            let categoryKey = null;
+            const needle = String(id || '').toLowerCase();
+            for (const key of GM.CATEGORIES) {
+                const found = (combinedData[key] || []).find(t => t.id === needle);
                 if (found) {
                     item = found;
                     categoryKey = key;
-
-                    // Update category tag visual
                     const labelMap = {
                         punches: 'PUNCHES',
                         stances: 'STANCE',
@@ -422,12 +428,21 @@
                     break;
                 }
             }
+            return { item, categoryKey };
+        }
 
-            if (item) {
+        function renderDetail(item, categoryKey, combinedData) {
+            if (!item) {
+                document.getElementById('tech-title').innerText = 'Not Found';
+                return;
+            }
                 // Populate Hero
                 document.getElementById('tech-title').innerText = item.name;
-                document.getElementById('tech-desc').innerText = item.desc;
-                document.getElementById('tech-img').src = item.image || 'assets/placeholder_tech.jpg';
+                document.getElementById('tech-desc').innerText =
+                    item.desc || 'Technique breakdown loading from combat database.';
+                const heroImg = document.getElementById('tech-img');
+                heroImg.src = item.image;
+                heroImg.onerror = () => GM.onImageError(heroImg, item.name, categoryKey);
 
                 // Hero Bar now matches the "Effectiveness" shown on the card
                 const heroLabel = 'EFFECTIVENESS';
@@ -443,6 +458,7 @@
 
                 // Steps
                 const stepContainer = document.getElementById('detail-steps');
+                stepContainer.innerHTML = '';
                 if (item.steps) {
                     item.steps.forEach((step, idx) => {
                         const div = document.createElement('div');
@@ -457,6 +473,7 @@
 
                 // Stats
                 const statContainer = document.getElementById('detail-stats');
+                statContainer.innerHTML = '';
                 if (item.stats) {
                     item.stats.forEach(stat => {
                         const div = document.createElement('div');
@@ -523,8 +540,9 @@
 
                 // --- Populate Encyclopedia (Related Techniques) ---
                 const encycloGrid = document.getElementById('encyclo-grid');
-                if (categoryKey && techniquesData[categoryKey]) {
-                    const related = techniquesData[categoryKey].filter(t => t.id !== item.id);
+                encycloGrid.innerHTML = '';
+                if (categoryKey && combinedData[categoryKey]) {
+                    const related = combinedData[categoryKey].filter(t => t.id !== item.id);
 
                     // Category icon map
                     const iconMap = {
@@ -567,10 +585,31 @@
                         });
                     }
                 }
+        }
 
-            } else {
-                document.getElementById('tech-title').innerText = "Not Found";
+        function fetchRemoteCustom(timeoutMs) {
+            return Promise.race([
+                db.from('techniques').select('*').then(({ data, error }) => {
+                    if (error || !data) return [];
+                    return data;
+                }),
+                new Promise(resolve => setTimeout(() => resolve([]), timeoutMs))
+            ]).catch(() => []);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const id = new URLSearchParams(window.location.search).get('id');
+
+            function paint(extraCustom) {
+                const combined = buildCatalog(extraCustom);
+                const { item, categoryKey } = findTechnique(combined, id);
+                renderDetail(item, categoryKey, combined);
             }
+
+            paint();
+            fetchRemoteCustom(2500).then(remote => {
+                if (remote.length) paint(remote);
+            });
         });
     </script>
 </body>

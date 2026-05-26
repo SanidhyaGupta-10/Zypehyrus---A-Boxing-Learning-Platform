@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Intensity - AI Boxing Guru</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script type="module" crossorigin src="/assets/intensity-BJnmGfsC.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+  <link rel="stylesheet" crossorigin href="/assets/style-Dx3LiayG.css">
+</head>
+
+<body class="onboarding-body-lock onboarding-layout">
+    <div class="app-container dashboard-bg">
+        <div class="onboarding-content">
+            <div class="page animate-fade anim-slide-right"
+                style="padding: 0; min-height: auto; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                <header class="header animate-slide-up hover-scale" style="text-align: left; margin-bottom: 15px;">
+                    <div
+                        style="font-size: 0.8rem; font-weight: 800; letter-spacing: 4px; color: var(--primary); margin-bottom: 12px; text-transform: uppercase;">
+                        ONBOARDING 09/10</div>
+                    <h1 style="font-size: 2.3rem; font-weight: 700; line-height: 1.1; color: var(--text);">How deep are
+                        <br><span class="text-neon" style="font-style: italic;">We going today?</span>
+                    </h1>
+                    <p style="color: var(--text-muted); margin-top: 10px; font-size: 0.9rem; line-height: 1.4;">
+                        Configure engine output level for your initial sessions.</p>
+                </header>
+
+                <main class="animate-slide-up hover-scale"
+                    style="animation-delay: 0.1s; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px;">
+                    <div class="intensity-options" style="display: flex; flex-direction: column; gap: 12px;">
+                        <div class="glass-card intensity-card" onclick="setIntensity(this, 1)">
+                            <div
+                                style="font-size: 0.65rem; color: var(--text-muted); font-weight: 800; letter-spacing: 1px;">
+                                LEVEL 01</div>
+                            <h2 style="font-size: 1.4rem; font-weight: 800;">LIGHT TECH</h2>
+                            <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">FORM & PRECISION
+                                FOCUS</p>
+                        </div>
+
+                        <div class="glass-card intensity-card" onclick="setIntensity(this, 2)">
+                            <div
+                                style="font-size: 0.65rem; color: var(--text-muted); font-weight: 800; letter-spacing: 1px;">
+                                LEVEL 02</div>
+                            <h2 style="font-size: 1.4rem; font-weight: 800;">HIGH VOLUME</h2>
+                            <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">ENDURANCE &
+                                METABOLIC BURN</p>
+                        </div>
+
+                        <div class="glass-card intensity-card active" onclick="setIntensity(this, 3)">
+                            <div
+                                style="font-size: 0.65rem; color: var(--primary); font-weight: 800; letter-spacing: 1px;">
+                                LEVEL 03</div>
+                            <h2 style="font-size: 1.6rem; font-weight: 800; font-style: italic; color: var(--primary);">
+                                ABSOLUTE WAR</h2>
+                            <p
+                                style="font-size: 0.7rem; color: var(--primary); margin-top: 4px; opacity: 0.8 !important;">
+                                MAXIMUM SYSTEM OUTPUT</p>
+                        </div>
+                    </div>
+                </main>
+
+                <footer style="margin-top: 25px; text-align: center;">
+                    <button id="next-btn" class="btn-primary hover-scale"
+                        style="width: 100%; height: 75px; border-radius: 100px; font-size: 1.2rem;">
+                        LOCK IN SETTINGS <i class="fa-solid fa-bolt" style="margin-left: 10px;"></i>
+                    </button>
+                    <a href="trigger.html"
+                        style="display: block; text-decoration: none; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 2px; font-size: 0.65rem; margin-top: 15px;">BACK</a>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .intensity-card {
+            cursor: pointer;
+            transition: 0.3s;
+            border: 2px solid transparent !important;
+            padding: 20px !important;
+            text-align: center;
+        }
+
+        .intensity-card.active {
+            border-color: var(--primary) !important;
+            background: rgba(var(--primary-rgb), 0.05) !important;
+            box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.2);
+            transform: scale(1.02);
+        }
+
+        .intensity-card.active h2 {
+            opacity: 1 !important;
+        }
+    </style>
+
+</body>
+
+</html>

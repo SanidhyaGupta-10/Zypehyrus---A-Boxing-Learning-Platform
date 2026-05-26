@@ -11,14 +11,14 @@ const Calibration: React.FC = () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: 'user' },
-                    audio: false
+                    audio: false,
                 });
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
                 }
                 setHasPermission(true);
             } catch (err) {
-                console.error("Camera access denied:", err);
+                console.error('Camera access denied:', err);
                 setHasPermission(false);
             }
         }
@@ -41,7 +41,9 @@ const Calibration: React.FC = () => {
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-8 gap-4">
                         <span className="text-4xl">🚫</span>
                         <p className="text-sm text-red-500 uppercase font-bold">Camera Access Required</p>
-                        <p className="text-xs text-text-muted">Please enable camera permissions in your browser settings to continue.</p>
+                        <p className="text-xs text-text-muted">
+                            Please enable camera permissions in your browser settings to continue.
+                        </p>
                     </div>
                 ) : (
                     <>
@@ -52,7 +54,6 @@ const Calibration: React.FC = () => {
                             muted
                             className="w-full h-full object-cover scale-x-[-1]"
                         />
-                        {/* HUD Overlay */}
                         <div className="absolute inset-0 border-[20px] border-primary/5 pointer-events-none">
                             <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-primary" />
                             <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-primary" />
@@ -67,10 +68,10 @@ const Calibration: React.FC = () => {
             </div>
 
             <div className="flex flex-col w-full gap-4 mt-8">
-                <button onClick={nextStep} className="btn-primary w-full" disabled={!hasPermission}>
+                <button type="button" onClick={nextStep} className="btn-primary w-full" disabled={!hasPermission}>
                     VERIFIED
                 </button>
-                <button onClick={prevStep} className="text-text-muted hover:text-white transition-colors">
+                <button type="button" onClick={prevStep} className="text-text-muted hover:text-white transition-colors">
                     BACK
                 </button>
             </div>

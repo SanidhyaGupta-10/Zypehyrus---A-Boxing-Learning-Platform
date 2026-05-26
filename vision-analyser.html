@@ -37,6 +37,7 @@
         crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 
+    <script src="onboarding-utils.js"></script>
     <script src="sound-effects.js"></script>
     <script src="streak-manager.js"></script>
 
@@ -441,6 +442,8 @@
             transition: all 0.25s;
             text-align: left;
             width: 100%;
+            color: #fff;
+            font-family: inherit;
         }
 
         .mode-card:hover {
@@ -473,6 +476,8 @@
             text-align: left;
             width: 100%;
             transition: all 0.2s;
+            color: #fff;
+            font-family: inherit;
         }
 
         .diff-card:hover {
@@ -1999,10 +2004,28 @@
                 <div class="score-flaw"><i class="fa-solid fa-triangle-exclamation"
                         style="color: #f1c40f; margin-right: 6px;"></i><span id="res-flaw">Loading...</span></div>
 
-                <div class="score-row">
+                <div class="score-row" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="score-pill">
+                        <div class="pill-val" id="res-overall-score">—</div>
+                        <div class="pill-label">Overall<br>Score</div>
+                    </div>
+                    <div class="score-pill">
+                        <div class="pill-val" id="res-power-score">—</div>
+                        <div class="pill-label">Power<br>Score</div>
+                    </div>
+                    <div class="score-pill">
+                        <div class="pill-val" id="res-stance-score">—</div>
+                        <div class="pill-label">Stance<br>Score</div>
+                    </div>
+                    <div class="score-pill">
+                        <div class="pill-val" id="res-reflex-score">—</div>
+                        <div class="pill-label">Reflex<br>Score</div>
+                    </div>
+                </div>
+                <div class="score-row" style="margin-top: 10px;">
                     <div class="score-pill">
                         <div class="pill-val" id="res-posture">—</div>
-                        <div class="pill-label">Posture<br>Score</div>
+                        <div class="pill-label">Posture<br>/10</div>
                     </div>
                     <div class="score-pill">
                         <div class="pill-val" id="res-avg-reflex">—</div>
@@ -2010,7 +2033,7 @@
                     </div>
                     <div class="score-pill">
                         <div class="pill-val" id="res-punch-count">—</div>
-                        <div class="pill-label">Punches<br>Logged</div>
+                        <div class="pill-label">Commands<br>Logged</div>
                     </div>
                 </div>
             </div>
@@ -2056,23 +2079,36 @@
         </div>
     </section>
 
+    <script type="module" src="./vision-gemini-init.js"></script>
     <script>
-        // Redirect to onboarding if not completed (fixes Android/cold start missing onboarding)
+        // Redirect if fighter profile incomplete (vision requires main onboarding)
         (function () {
-            var raw = localStorage.getItem('boxing_onboarding_data');
-            if (!raw) {
-                window.location.replace('index.html');
-                return;
-            }
-            try {
-                var data = JSON.parse(raw);
-                if (!data.user_metrics || !data.user_metrics.age) {
-                    window.location.replace('index.html');
-                }
-            } catch (e) {
-                window.location.replace('index.html');
+            var Z = window.ZephyrOnboarding;
+            if (!Z) return;
+            var data = Z.getOnboardingData();
+            if (!Z.hasVisionProfile(data)) {
+                Z.redirectToMainOnboarding();
             }
         })();
+
+        function requireVisionOnboarding() {
+            var Z = window.ZephyrOnboarding;
+            if (!Z) return true;
+            var data = Z.getOnboardingData();
+            if (!Z.hasVisionProfile(data)) {
+                Z.redirectToMainOnboarding();
+                return false;
+            }
+            return true;
+        }
+
+        function playUiClick() {
+            try {
+                if (window.AppSounds && typeof window.AppSounds.play === 'function') {
+                    window.AppSounds.play('click');
+                }
+            } catch (e) { /* ignore */ }
+        }
 
         // ═══════════════════════════════════════════════════════════
         //  ZEPHYR AI VIDEO ANALYSER ENGINE
@@ -2082,9 +2118,33 @@
         // ── ZEPHYR API config ──────────────────────────────────────
         // ── ZEPHYR Backend Config ──────────────────────────────────
         // Dynamic URL for Cloud Run deployment, relative fallback for dev
-        const BACKEND_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_BACKEND_URL)
-            ? import.meta.env.VITE_BACKEND_URL + '/api/session-summary'
-            : '/api/session-summary';
+        const ZEPHYR_API_BASE = window.NEXT_PUBLIC_API_URL
+            || window.ZEPHYR_API_BASE
+            || (location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+                ? 'http://localhost:3000'
+                : 'https://boxing-backend-905213936581.us-central1.run.app');
+        const BACKEND_URL = ZEPHYR_API_BASE.replace(/\/$/, '') + '/api/analyze-session';
+        const VISION_VIDEO_URL = ZEPHYR_API_BASE.replace(/\/$/, '') + '/api/analyze-vision-video';
+
+        function getGeminiUrl() {
+            if (window.ZephyrGemini?.url) return window.ZephyrGemini.url;
+            const key = window.ZephyrGemini?.apiKey;
+            const model = window.ZephyrGemini?.model || 'gemini-2.0-flash';
+            if (!key) return null;
+            return (
+                'https://generativelanguage.googleapis.com/v1beta/models/' +
+                `${model}:generateContent?key=${encodeURIComponent(key)}`
+            );
+        }
+
+        async function waitForGeminiConfig(maxMs) {
+            const start = Date.now();
+            while (Date.now() - start < maxMs) {
+                if (getGeminiUrl()) return true;
+                await sleep(80);
+            }
+            return !!getGeminiUrl();
+        }
 
 
         // Supabase / Auth Bridge
@@ -2129,6 +2189,8 @@
         }
 
         function openModeSelect() {
+            if (!requireVisionOnboarding()) return;
+
             // Save onboarding data to local if not already stored
             const existing = localStorage.getItem('boxing_onboarding_data');
             if (!existing) {
@@ -2258,9 +2320,11 @@
         loadVoices();
 
         function setVoice(profile, btn) {
+            if (!requireVisionOnboarding()) return;
+
             selectedVoiceProfile = profile;
             document.querySelectorAll('.voice-opt').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+            if (btn) btn.classList.add('active');
 
             // Brief sample
             const samples = {
@@ -2269,7 +2333,7 @@
                 cyber: "System calibrated. Awaiting movement data."
             };
             speak(samples[profile]);
-            AppSounds.play('click');
+            playUiClick();
         }
         function getOptimalVoice(profile) {
             if (voices.length === 0) voices = Synth.getVoices();
@@ -2388,7 +2452,9 @@ Generate exactly ${punchTarget} commands total. Return ONLY a comma-separated li
 No explanations, no numbering, just the list.`;
 
             try {
-                const res = await fetch(GEMINI_URL, {
+                const geminiUrl = getGeminiUrl();
+                if (!geminiUrl) return;
+                const res = await fetch(geminiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -3047,7 +3113,6 @@ No explanations, no numbering, just the list.`;
             document.getElementById('btn-stop').disabled = true;
             document.getElementById('coach-bubble').style.display = 'none';
 
-            // Stop local recorder (optional - we keep video for local player if needed, but not for analysis)
             await new Promise(resolve => {
                 if (!mediaRecorder || mediaRecorder.state === 'inactive') { resolve(); return; }
                 mediaRecorder.onstop = resolve;
@@ -3055,65 +3120,115 @@ No explanations, no numbering, just the list.`;
             });
 
             showStage('stage-analyzing');
-            await progressStep('step-1', 400);
+            await progressStep('step-1', 500);
 
-            // Gather only numeric text data for the backend
             const profile = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
-            const sessionPayload = {
-                ring_name: profile.ring_name || 'Fighter',
-                experience_level: profile.experience_level || 'Novice',
-                punch_count: punchCount,
-                command_log: commandLog,
-                reflex_data: reflexAnalytics.matches // Client-side processed metrics
-            };
+            const commandMetaJSON = JSON.stringify(commandLog, null, 2);
+            const reflexPayload = reflexAnalytics.matches;
 
-            await progressStep('step-2', 400);
-            await progressStep('step-3', 400);
+            await progressStep('step-2', 600);
+            await progressStep('step-3', 600);
+            await progressStep('step-4', 600);
 
             let analysisData = null;
+            const videoBlob = recordedChunks.length
+                ? new Blob(recordedChunks, { type: mediaRecorder?.mimeType || 'video/webm' })
+                : null;
+
             try {
-                // Rule 1 & 2: Sending numeric data to optimized backend
-                const response = await fetch(BACKEND_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(sessionPayload)
-                });
-
-                if (!response.ok) throw new Error('Backend Analysis Failed');
-
-                const result = await response.json();
-
-                // Map Backend Analysis to Frontend UI Schema
-                const ai = result.analysis;
-                analysisData = {
-                    session_summary: {
-                        posture_score: 9.0, // Local estimation or fixed
-                        overall_reflex_rating: punchCount > 30 ? 'Amateur' : 'Novice',
-                        primary_technical_flaw: ai.tip || 'Keep hands up',
-                        calibration_status: 'Passed'
-                    },
-                    drill_data: reflexAnalytics.matches.map(m => ({
-                        command: m.command,
-                        reflex_time_ms: m.reflexMs,
-                        velocity_rating: m.velocity,
-                        form_notes: 'Snappy response'
-                    })),
-                    coach_advice: ai.feedback || 'Great session!'
-                };
-
+                if (videoBlob && videoBlob.size > 0) {
+                    const base64Video = await blobToBase64(videoBlob);
+                    analysisData = await analyzeVideoWithGemini(
+                        base64Video,
+                        videoBlob.type || 'video/webm',
+                        commandMetaJSON,
+                        profile,
+                        reflexPayload
+                    );
+                } else {
+                    throw new Error('No recorded video available.');
+                }
                 AppSounds.play('success');
-                saveSessionToHistory(analysisData, punchCount, commandLog.length);
-
             } catch (err) {
-                console.warn('Backend error:', err);
-                showError('Optimized Analysis failed - showing local estimations.');
-                analysisData = getDemoAnalysis(); // Fallback to demo
+                console.warn('Gemini video analysis failed:', err);
+                showError('Video AI unavailable — using command-timing analysis.');
+                try {
+                    await waitForGeminiConfig(3000);
+                    const textRaw = await callGeminiTextAnalysis(commandMetaJSON, profile);
+                    analysisData = normalizeVisionAnalysis(textRaw);
+                } catch (err2) {
+                    console.warn('Gemini text fallback failed:', err2);
+                    analysisData = getDemoAnalysis();
+                }
             }
 
-            await progressStep('step-5', 400);
+            await progressStep('step-5', 500);
+            saveSessionToHistory(analysisData, punchCount, commandLog.length);
             renderResults(analysisData);
             showStage('stage-results');
             StreakManager.completeSession();
+        }
+
+        async function analyzeVideoWithGemini(base64Video, mimeType, commandMetaJSON, profile, reflexPayload) {
+            const payload = {
+                base64Video,
+                mimeType,
+                commandLog,
+                profile,
+                reflex_data: reflexPayload,
+            };
+
+            try {
+                const res = await fetch(VISION_VIDEO_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.analysis) {
+                        console.log('[Vision] Gemini report via backend');
+                        return normalizeVisionAnalysis(json.analysis);
+                    }
+                }
+            } catch (e) {
+                console.warn('[Vision] Backend video proxy failed:', e.message);
+            }
+
+            await waitForGeminiConfig(5000);
+            const geminiUrl = getGeminiUrl();
+            if (!geminiUrl) {
+                throw new Error('Gemini API key missing. Set VITE_GEMINI_API_KEY or run npm start with GEMINI_API_KEY.');
+            }
+
+            console.log('[Vision] Gemini direct video analysis');
+            const raw = await callGeminiVideoAnalysis(base64Video, mimeType, commandMetaJSON, profile, reflexPayload);
+            return normalizeVisionAnalysis(raw);
+        }
+
+        function normalizeVisionAnalysis(data) {
+            const s = data.session_summary || {};
+            return {
+                session_summary: {
+                    overall_reflex_rating: s.overall_rating || s.overall_reflex_rating || 'Amateur',
+                    overall_rating: s.overall_rating || s.overall_reflex_rating || 'Amateur',
+                    overall_score: clampScore(s.overall_score, 70),
+                    power_score: clampScore(s.power_score, 70),
+                    stance_score: clampScore(s.stance_score, 70),
+                    reflex_score: clampScore(s.reflex_score, 70),
+                    posture_score: s.posture_score ?? 7,
+                    primary_technical_flaw: s.primary_technical_flaw || 'Keep your guard tight.',
+                    calibration_status: s.calibration_status || 'Passed',
+                },
+                drill_data: data.drill_data || [],
+                coach_advice: data.coach_advice || 'Strong effort — repeat this drill focusing on form.',
+            };
+        }
+
+        function clampScore(val, fallback) {
+            const n = Number(val);
+            if (!Number.isFinite(n)) return fallback;
+            return Math.max(0, Math.min(100, Math.round(n)));
         }
 
         // ══════════════════════════════════════════════════
@@ -3135,43 +3250,46 @@ No explanations, no numbering, just the list.`;
         // ══════════════════════════════════════════════════
         // ZEPHYR MULTIMODAL — Real Video Analysis
         // ══════════════════════════════════════════════════
-        async function callGeminiVideoAnalysis(base64Video, mimeType, commandMetaJSON, profile) {
-            const prompt = `You are the 'ZEPHYR Biomechanical AI Coach'. Analyze this boxing drill video.
+        async function callGeminiVideoAnalysis(base64Video, mimeType, commandMetaJSON, profile, reflexPayload) {
+            const prompt = `You are the ZEPHYR Biomechanical AI Coach. Analyze this LIVE RECORDED boxing drill video.
 
 FIGHTER PROFILE:
-- Experience: ${profile.experience_level || 'Novice'}
-- Goal: ${profile.primary_goal || 'Fitness'}
+${JSON.stringify(profile || {}, null, 2)}
 
-COMMAND LOG (AI coach issued these voice commands at these timestamps):
+VOICE COMMANDS (coach issued at timestamps in ms):
 ${commandMetaJSON}
 
-INSTRUCTIONS:
-1. CALIBRATION (first ~10 seconds): Score posture 1-10. Is full body in frame? Guard up?
-2. For EACH command in the log, estimate the fighter's reflex time and punch speed from the video motion.
-3. Identify the single biggest technical flaw you observe.
+CLIENT REFLEX SENSOR DATA:
+${JSON.stringify(reflexPayload || [], null, 2)}
 
-Return ONLY a valid JSON object (no markdown, no explanation):
+INSTRUCTIONS:
+1. Watch the entire video. Score POWER (0-100): hip drive, punch snap, extension.
+2. Score STANCE (0-100): balance, guard position, footwork, chin discipline.
+3. Score REFLEX (0-100): delay between command and correct response.
+4. overall_score = rounded average of power, stance, reflex. overall_rating: Elite 85+, Amateur 60-84, Novice below 60.
+5. posture_score 1-10. primary_technical_flaw: one specific issue seen in video.
+6. drill_data: one entry per command with reflex_time_ms, velocity_rating, form_notes.
+
+Return ONLY valid JSON:
 {
   "session_summary": {
-    "posture_score": 0,
-    "overall_reflex_rating": "Elite|Amateur|Novice",
-    "primary_technical_flaw": "One specific flaw observed",
-    "calibration_status": "Passed|Failed"
+    "overall_rating": "Amateur",
+    "overall_score": 75,
+    "power_score": 78,
+    "stance_score": 72,
+    "reflex_score": 74,
+    "posture_score": 7,
+    "primary_technical_flaw": "specific flaw",
+    "calibration_status": "Passed"
   },
-  "drill_data": [
-    {
-      "command": "Jab",
-      "command_timestamp_ms": 0,
-      "reflex_time_ms": 0,
-      "extension_speed_ms": 0,
-      "velocity_rating": "Explosive|Snappy|Slow",
-      "form_notes": "Specific observation"
-    }
-  ],
-  "coach_advice": "Two-sentence motivational coaching tip."
+  "drill_data": [],
+  "coach_advice": "Coaching paragraph."
 }`;
 
-            const res = await fetch(GEMINI_URL, {
+            const geminiUrl = getGeminiUrl();
+            if (!geminiUrl) throw new Error('Gemini URL not configured');
+
+            const res = await fetch(geminiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -3186,7 +3304,11 @@ Return ONLY a valid JSON object (no markdown, no explanation):
                             { text: prompt }
                         ]
                     }],
-                    generationConfig: { temperature: 0.4, maxOutputTokens: 2048 }
+                    generationConfig: {
+                        temperature: 0.35,
+                        maxOutputTokens: 4096,
+                        responseMimeType: 'application/json'
+                    }
                 })
             });
 
@@ -3206,20 +3328,27 @@ Return ONLY a valid JSON object (no markdown, no explanation):
         // ZEPHYR TEXT FALLBACK (if video too large)
         // ══════════════════════════════════════════════════
         async function callGeminiTextAnalysis(commandMetaJSON, profile) {
-            const prompt = `You are the ZEPHYR Boxing AI Coach. A boxing drill was performed with these voice commands at these timestamps:
+            const prompt = `You are the ZEPHYR Boxing AI Coach. A boxing drill was performed with these voice commands:
 ${commandMetaJSON}
-Fighter level: ${profile.experience_level || 'Novice'}. Total punches: ${commandLog.length}.
-Analyze the timing gaps between commands to estimate reflex performance.
-Return ONLY valid JSON (no markdown):
-{"session_summary":{"posture_score":7,"overall_reflex_rating":"Amateur","primary_technical_flaw":"Rear hand drops on Jab","calibration_status":"Passed"},"drill_data":[{"command":"Jab","command_timestamp_ms":0,"reflex_time_ms":280,"extension_speed_ms":95,"velocity_rating":"Snappy","form_notes":"Good technique"}],"coach_advice":"Keep training consistently and focus on guard discipline."}
+Fighter: ${JSON.stringify(profile || {})}. Commands completed: ${commandLog.length}.
+Estimate POWER, STANCE, and REFLEX scores (0-100) from timing and command patterns.
+Return ONLY valid JSON:
+{"session_summary":{"overall_rating":"Amateur","overall_score":70,"power_score":72,"stance_score":68,"reflex_score":71,"posture_score":7,"primary_technical_flaw":"specific flaw","calibration_status":"Passed"},"drill_data":[{"command":"Jab","command_timestamp_ms":0,"reflex_time_ms":280,"extension_speed_ms":95,"velocity_rating":"Snappy","form_notes":"note"}],"coach_advice":"advice"}
 Generate one drill_data entry per command: ${commandLog.map(c => c.command).join(', ')}.`;
 
-            const res = await fetch(GEMINI_URL, {
+            const geminiUrl = getGeminiUrl();
+            if (!geminiUrl) throw new Error('Gemini URL not configured');
+
+            const res = await fetch(geminiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.6, maxOutputTokens: 1500 }
+                    generationConfig: {
+                        temperature: 0.5,
+                        maxOutputTokens: 2048,
+                        responseMimeType: 'application/json'
+                    }
                 })
             });
             if (!res.ok) throw new Error(`ZEPHYR text API ${res.status}`);
@@ -3237,9 +3366,17 @@ Generate one drill_data entry per command: ${commandLog.map(c => c.command).join
             const summary = data.session_summary;
             const drills = data.drill_data || [];
 
-            // Score card
-            document.getElementById('res-rating').textContent = summary.overall_reflex_rating || 'Amateur';
+            const rating = summary.overall_rating || summary.overall_reflex_rating || 'Amateur';
+            document.getElementById('res-rating').textContent = rating.toUpperCase();
             document.getElementById('res-flaw').textContent = summary.primary_technical_flaw || 'Keep working on your guard.';
+            document.getElementById('res-overall-score').textContent =
+                (summary.overall_score != null ? summary.overall_score : '—');
+            document.getElementById('res-power-score').textContent =
+                (summary.power_score != null ? summary.power_score : '—');
+            document.getElementById('res-stance-score').textContent =
+                (summary.stance_score != null ? summary.stance_score : '—');
+            document.getElementById('res-reflex-score').textContent =
+                (summary.reflex_score != null ? summary.reflex_score : '—');
             document.getElementById('res-posture').textContent = (summary.posture_score || 0) + '/10';
             document.getElementById('res-punch-count').textContent = drills.length || punchCount;
             document.getElementById('res-advice').textContent = data.coach_advice || 'Keep training consistently.';
@@ -3360,7 +3497,12 @@ Generate one drill_data entry per command: ${commandLog.map(c => c.command).join
                 avg_reflex_ms: avgReflex,
                 accuracy: Math.min(100, Math.round((count / Math.max(1, totalExpected)) * 100)),
                 advice: (data && data.coach_advice) || "Great session, focus on your guard.",
-                score: (data && data.session_summary && data.session_summary.posture_score) ? (data.session_summary.posture_score * 10) : 85,
+                score: (data && data.session_summary && data.session_summary.overall_score)
+                    ? data.session_summary.overall_score
+                    : (data.session_summary.posture_score ? data.session_summary.posture_score * 10 : 85),
+                power_score: data?.session_summary?.power_score,
+                stance_score: data?.session_summary?.stance_score,
+                reflex_score: data?.session_summary?.reflex_score,
                 reflex_tier: (data && data.session_summary && data.session_summary.overall_reflex_rating) || 'Amateur',
                 flaw: (data && data.session_summary && data.session_summary.primary_technical_flaw) || 'None detected',
                 raw_data: data // Save full breakdown for deep analytics
@@ -3386,7 +3528,13 @@ Generate one drill_data entry per command: ${commandLog.map(c => c.command).join
             ];
             return {
                 session_summary: {
-                    posture_score: 7, overall_reflex_rating: 'Amateur',
+                    overall_rating: 'Amateur',
+                    overall_reflex_rating: 'Amateur',
+                    overall_score: 72,
+                    power_score: 74,
+                    stance_score: 68,
+                    reflex_score: 75,
+                    posture_score: 7,
                     primary_technical_flaw: 'Rear hand drops when jabbing — keep chin protected.',
                     calibration_status: 'Passed'
                 },

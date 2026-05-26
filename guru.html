@@ -168,8 +168,35 @@
             font-weight: 950;
             color: #fff;
             text-transform: uppercase;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             letter-spacing: 0.5px;
+        }
+
+        .tech-subtitle {
+            font-size: 0.55rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            line-height: 1.2;
+        }
+
+        .tech-desc-preview {
+            font-size: 0.6rem;
+            color: #888;
+            line-height: 1.35;
+            margin-bottom: 8px;
+            min-height: 2.5em;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .guru-grid-loading .tech-card {
+            opacity: 0.4;
+            pointer-events: none;
         }
 
         .eff-bar-track {
@@ -372,13 +399,17 @@
 
                 <!-- Header -->
                 <header
-                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px;">
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
                     <div class="hero-container animate-float">
                         <div>
                             <div class="hero-sub-text">AI COUNSEL</div>
                             <h1 class="hero-main-title">COMBAT<br>GURU</h1>
                         </div>
                     </div>
+                    <button id="add-tech-btn" class="btn ripple hover-scale" 
+                            style="padding: 12px 20px; background: rgba(226, 255, 59, 0.15); border: 1px solid var(--primary); color: var(--primary); border-radius: 100px; font-size: 0.75rem; font-weight: 950; text-transform: uppercase; cursor: pointer; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; box-shadow: 0 0 15px rgba(226, 255, 59, 0.2);">
+                        <i class="fa-solid fa-plus" style="font-size: 0.8rem;"></i> ADD SKILL
+                    </button>
                 </header>
 
                 <!-- Mastery Header (Animated) -->
@@ -477,9 +508,83 @@
 
 
     <script src="user-profile.js"></script>
+    <script src="guru-media.js"></script>
     <script src="techniques-data.js"></script>
-    <script>
-        function renderGrid(id, items, category) {
+    
+    <!-- Premium Add Custom Skill Modal -->
+    <div class="modal-overlay" id="add-tech-modal">
+        <div class="modal-card" style="border-top: 1px solid var(--primary); max-width: 480px; margin: 0 auto;">
+            <h2 class="modal-title" style="font-size: 1.8rem; margin-bottom: 5px;">ADD NEW<br><span style="color: var(--primary);">TECHNIQUE</span></h2>
+            <div class="modal-subtitle" style="margin-bottom: 20px;">DEPLOY TECHNICAL INTEL</div>
+            
+            <form id="add-tech-form" style="display: flex; flex-direction: column; gap: 15px; text-align: left;">
+                <div>
+                    <label style="font-size: 0.6rem; color: #888; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px;">Technique Name</label>
+                    <input type="text" id="tech-form-name" required placeholder="e.g. SUPERMAN PUNCH" 
+                           style="width: 100%; padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; color: #fff; font-family: inherit; font-size: 0.85rem;">
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label style="font-size: 0.6rem; color: #888; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px;">Category</label>
+                        <select id="tech-form-category" required 
+                                style="width: 100%; padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; color: #fff; font-family: inherit; font-size: 0.85rem; appearance: none;">
+                            <option value="stances" style="background:#0a0b0e;">Stance</option>
+                            <option value="punches" style="background:#0a0b0e;" selected>Punch</option>
+                            <option value="kicks" style="background:#0a0b0e;">Kick</option>
+                            <option value="defense" style="background:#0a0b0e;">Defense</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.6rem; color: #888; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px;">Effectiveness Score (%)</label>
+                        <input type="number" id="tech-form-score" required min="1" max="100" value="80" 
+                               style="width: 100%; padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; color: #fff; font-family: inherit; font-size: 0.85rem;">
+                    </div>
+                </div>
+                
+                <div>
+                    <label style="font-size: 0.6rem; color: #888; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px;">Subtitle / Tagline</label>
+                    <input type="text" id="tech-form-subtitle" required placeholder="e.g. Surprise Jump Strike" 
+                           style="width: 100%; padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; color: #fff; font-family: inherit; font-size: 0.85rem;">
+                </div>
+                
+                <div>
+                    <label style="font-size: 0.6rem; color: #888; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px;">Description</label>
+                    <textarea id="tech-form-desc" required rows="3" placeholder="Explain the combat application..." 
+                              style="width: 100%; padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; color: #fff; font-family: inherit; font-size: 0.85rem; resize: none;"></textarea>
+                </div>
+                
+                <div>
+                    <label style="font-size: 0.6rem; color: #888; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px;">Execution Steps (One per line)</label>
+                    <textarea id="tech-form-steps" required rows="3" placeholder="Step 1: Shift weight...&#10;Step 2: Launch forward..." 
+                              style="width: 100%; padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; color: #fff; font-family: inherit; font-size: 0.85rem; resize: none;"></textarea>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                    <button type="button" class="btn ripple" id="close-tech-modal" 
+                            style="padding: 16px; border-radius: 100px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-weight: 900; font-family: inherit; text-transform: uppercase; font-size: 0.9rem; cursor: pointer;">CANCEL</button>
+                    <button type="submit" class="btn ripple" 
+                            style="padding: 16px; border-radius: 100px; background: var(--primary); color: #000; border: none; font-weight: 950; font-family: inherit; text-transform: uppercase; font-size: 0.9rem; cursor: pointer; box-shadow: 0 5px 15px rgba(226, 255, 59, 0.3);">DEPLOY</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db } from './auth.js';
+        
+        const StreakManager = window.StreakManager;
+        const GM = window.GuruMedia;
+
+        function categoryNavLabel(cat) {
+            let catLabel = cat.toUpperCase();
+            if (catLabel === 'PUNCHES') catLabel = 'PUNCH';
+            if (catLabel === 'STANCES') catLabel = 'STANCE';
+            if (catLabel === 'KICKS') catLabel = 'KICK';
+            return catLabel;
+        }
+
+        function renderGrid(id, items, category, categoryKey) {
             const container = document.getElementById(id);
             if (!container) return;
             container.innerHTML = '';
@@ -493,67 +598,169 @@
                     window.location.href = `technical-detail.html?id=${item.id}&cat=${category}`;
                 };
 
+                const subtitle = item.subtitle
+                    ? `<div class="tech-subtitle">${GM.escapeHtml(item.subtitle)}</div>`
+                    : '';
+                const descPreview = item.desc
+                    ? `<p class="tech-desc-preview">${GM.escapeHtml(GM.truncate(item.desc, 88))}</p>`
+                    : '';
+
                 div.innerHTML = `
                     ${item.isAiPick ? '<div class="ai-pick-badge">AI PICK</div>' : ''}
                     <div class="tech-image-area">
-                        <img src="${item.image}" alt="${item.name}">
+                        <img src="${item.image}" alt="${GM.escapeHtml(item.name)}" loading="lazy" decoding="async">
                     </div>
-                    <div class="tech-name">${item.name}</div>
+                    <div class="tech-name">${GM.escapeHtml(item.name)}</div>
+                    ${subtitle}
+                    ${descPreview}
                     <div class="eff-bar-track">
                         <div class="eff-bar-fill" style="width: ${item.score}%"></div>
                     </div>
                     <div class="eff-label">EFFECTIVENESS: ${item.score}%</div>
                 `;
+                const img = div.querySelector('img');
+                img.addEventListener('error', () => GM.onImageError(img, item.name, categoryKey));
                 container.appendChild(div);
             });
         }
 
+        function buildCatalog(extraCustom) {
+            let combined = GM.hydrateCatalog(window.techniquesData || {});
+            GM.mergeCustomTechniques(combined, GM.loadLocalCustom());
+            if (extraCustom && extraCustom.length) {
+                GM.mergeCustomTechniques(combined, extraCustom);
+            }
+            return combined;
+        }
+
+        function renderPage(combinedData) {
+            let totalCount = 0;
+            let totalScore = 0;
+
+            GM.CATEGORIES.forEach(cat => {
+                const catItems = combinedData[cat];
+                if (!catItems) return;
+                totalCount += catItems.length;
+                catItems.forEach(i => { totalScore += i.score; });
+                renderGrid(cat + '-grid', catItems, categoryNavLabel(cat), cat);
+            });
+
+            document.getElementById('total-skills-count').innerText = totalCount;
+            const avgMastery = totalCount > 0 ? Math.round(totalScore / totalCount) : 0;
+            document.getElementById('mastery-percent-text').innerText = avgMastery + '%';
+            document.getElementById('mastery-growth').innerText = '+2% This Week';
+
+            setTimeout(() => {
+                const circle = document.getElementById('mastery-circle-path');
+                if (circle) circle.style.strokeDasharray = `${avgMastery}, 100`;
+            }, 100);
+        }
+
+        function fetchRemoteCustom(timeoutMs) {
+            return Promise.race([
+                db.from('techniques').select('*').then(({ data, error }) => {
+                    if (error || !data) return [];
+                    return data;
+                }),
+                new Promise(resolve => setTimeout(() => resolve([]), timeoutMs))
+            ]).catch(() => []);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            if (typeof techniquesData !== 'undefined') {
-                // Counts
-                let totalCount = 0;
-                let totalScore = 0;
+            // Instant render from local catalog (no network wait)
+            renderPage(buildCatalog());
+            StreakManager?.updateBadges?.();
 
-                // Render Grids & Calc Stats
-                ['stances', 'punches', 'kicks', 'defense'].forEach(cat => {
-                    const catItems = techniquesData[cat];
-                    if (catItems) {
-                        totalCount += catItems.length;
-                        catItems.forEach(i => totalScore += i.score);
+            // Merge cloud custom techniques when available (2.5s cap)
+            fetchRemoteCustom(2500).then(remote => {
+                if (!remote.length) return;
+                renderPage(buildCatalog(remote));
+            });
 
-                        let catLabel = cat.toUpperCase();
-                        if (catLabel === 'PUNCHES') catLabel = 'PUNCH';
-                        if (catLabel === 'STANCES') catLabel = 'STANCE';
-                        if (catLabel === 'KICKS') catLabel = 'KICK';
+            // Set up Modal Interactions
+            const modal = document.getElementById('add-tech-modal');
+            const addBtn = document.getElementById('add-tech-btn');
+            const closeBtn = document.getElementById('close-tech-modal');
+            const form = document.getElementById('add-tech-form');
 
-                        renderGrid(cat + '-grid', catItems, catLabel);
+            if (addBtn && modal && closeBtn) {
+                addBtn.onclick = () => {
+                    modal.style.display = 'flex';
+                    setTimeout(() => {
+                        modal.style.opacity = '1';
+                        modal.querySelector('.modal-card').style.transform = 'translateY(0)';
+                    }, 50);
+                    if (window.AppSounds) window.AppSounds.play('click');
+                };
+
+                const closeModal = () => {
+                    modal.style.opacity = '0';
+                    modal.querySelector('.modal-card').style.transform = 'translateY(100%)';
+                    setTimeout(() => {
+                        modal.style.display = 'none';
+                    }, 300);
+                    if (window.AppSounds) window.AppSounds.play('click');
+                };
+
+                closeBtn.onclick = closeModal;
+                modal.onclick = (e) => {
+                    if (e.target === modal) closeModal();
+                };
+
+                form.onsubmit = async (e) => {
+                    e.preventDefault();
+                    
+                    const name = document.getElementById('tech-form-name').value.trim();
+                    const category = document.getElementById('tech-form-category').value;
+                    const score = parseInt(document.getElementById('tech-form-score').value) || 80;
+                    const subtitle = document.getElementById('tech-form-subtitle').value.trim();
+                    const desc = document.getElementById('tech-form-desc').value.trim();
+                    const stepsText = document.getElementById('tech-form-steps').value.trim();
+                    
+                    const steps = stepsText.split('\n').map(s => s.trim()).filter(Boolean);
+                    const id = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    
+                    const newTech = {
+                        id,
+                        category,
+                        name,
+                        subtitle,
+                        image: '',
+                        score,
+                        desc,
+                        steps,
+                        stats: [
+                            { label: "SPEED", val: `${Math.round(40 + Math.random() * 55)}%` },
+                            { label: "POWER", val: `${Math.round(40 + Math.random() * 55)}%` },
+                            { label: "CONTROL", val: `${Math.round(50 + Math.random() * 45)}%` }
+                        ],
+                        pro_tip: "Maintain perfect combat balance and return to guard instantly.",
+                        targets: ["Chin", "Body"],
+                        mistakes: ["Dropping your guard while executing."]
+                    };
+                    
+                    try {
+                        console.log('[Guru] Syncing custom technique to Supabase:', newTech);
+                        const { error } = await db.from('techniques').insert([newTech]);
+                        if (error) throw error;
+                        
+                        if (window.AppSounds) window.AppSounds.play('success');
+                        alert("Technique successfully deployed to AI core!");
+                    } catch (err) {
+                        console.warn('[Guru] Database sync failed. Saving locally to localStorage:', err);
+                        
+                        // LocalStorage Fallback
+                        const local = JSON.parse(localStorage.getItem('custom_techniques') || '[]');
+                        local.push(newTech);
+                        localStorage.setItem('custom_techniques', JSON.stringify(local));
+                        
+                        if (window.AppSounds) window.AppSounds.play('success');
+                        alert("Technique saved locally (Database Link Offline). It will be active on this device.");
                     }
-                });
-
-                // Update Header Stats
-                document.getElementById('total-skills-count').innerText = totalCount;
-
-                // Calculate Average Mastery
-                const avgMastery = totalCount > 0 ? Math.round(totalScore / totalCount) : 0;
-
-                document.getElementById('mastery-percent-text').innerText = avgMastery + "%";
-                document.getElementById('mastery-growth').innerText = "+2% This Week"; // Mock growth
-
-                // Animate Circle
-                // stroke-dasharray="current, 100"
-                // map 0-100 to 0-100 (since path length is roughly 100 due to radius ~15.9155 * 2 * PI = 100)
-                setTimeout(() => {
-                    const circle = document.getElementById('mastery-circle-path');
-                    if (circle) {
-                        circle.style.strokeDasharray = `${avgMastery}, 100`;
-                    }
-                }, 100);
-
-                // Populate Nav Streak
-                StreakManager.updateBadges();
-
-            } else {
-                console.error("techniquesData not found.");
+                    
+                    closeModal();
+                    location.reload();
+                };
             }
         });
     </script>

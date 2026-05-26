@@ -28,13 +28,14 @@ const Commitment: React.FC = () => {
 
             <div className="flex flex-col w-full gap-4 mt-12">
                 <button
+                    type="button"
                     onClick={nextStep}
                     className="btn-primary w-full"
                     disabled={!data.promiseWord || data.promiseWord.length < 3}
                 >
                     I PROMISE
                 </button>
-                <button onClick={prevStep} className="text-text-muted hover:text-white transition-colors">
+                <button type="button" onClick={prevStep} className="text-text-muted hover:text-white transition-colors">
                     BACK
                 </button>
             </div>
