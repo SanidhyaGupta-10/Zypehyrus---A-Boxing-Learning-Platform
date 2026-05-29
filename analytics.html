@@ -319,9 +319,8 @@
                         <h3
                             style="color: #fff; font-weight: 950; font-size: 1.1rem; text-transform: uppercase; font-style: italic;">
                             SESSION HISTORY</h3>
-                        <a href="#"
-                            style="color: var(--primary); font-size: 0.7rem; font-weight: 950; text-transform: uppercase; text-decoration: none; letter-spacing: 1px;">VIEW
-                            ALL</a>
+                        <a href="javascript:connectAllProtocols()" id="view-all-history-btn"
+                            style="color: var(--primary); font-size: 0.7rem; font-weight: 950; text-transform: uppercase; text-decoration: none; letter-spacing: 1px; border: 1px solid var(--primary); padding: 5px 12px; border-radius: 100px; box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.3); transition: 0.3s;" class="hover-scale">SYNC & CONNECT ALL</a>
                     </div>
 
                     <div id="daily-grind-section">
@@ -495,10 +494,15 @@
             AppSounds.play('click');
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        function loadAnalyticsDashboard() {
             const dailyGrindList = document.getElementById('daily-grind-list');
             const plannerProtocolList = document.getElementById('planner-protocol-list');
             const visionHistoryList = document.getElementById('vision-history-list');
+
+            // Clear lists first
+            dailyGrindList.innerHTML = '';
+            plannerProtocolList.innerHTML = '';
+            visionHistoryList.innerHTML = '';
 
             const onboardData = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
 
@@ -506,6 +510,9 @@
             let sessionCount = 0;
             let bestReflex = 999;
             const challengeGoal = 30;
+
+            const dailyDataForChart = [];
+            const visionDataForChart = [];
 
             // 1. Get Vision History (Sorted by Date)
             const visionHistory = JSON.parse(localStorage.getItem('boxing_session_history') || '[]');
@@ -531,6 +538,7 @@
 
                 if (completedIndices.length > 0) {
                     sessionCount++;
+                    dailyDataForChart.push({ date: d.toISOString(), count: completedIndices.length });
                     const card = document.createElement('div');
                     card.className = "history-card-v3 ripple hover-scale";
                     card.innerHTML = `
@@ -585,6 +593,8 @@
                 const month = d.toLocaleString('default', { month: 'short' }).toUpperCase();
                 const dateNum = d.getDate();
 
+                visionDataForChart.push({ date: item.date, punches: item.punches });
+
                 // Track numerical reflex for the matrix
                 if (item.avg_reflex_ms) {
                     const rtVal = parseFloat(item.avg_reflex_ms) / 1000; // Convert to seconds for matrix
@@ -630,6 +640,93 @@
             if (visionHistory.length > 0) {
                 showVisionDetails(0);
             }
+
+            // 7. RENDER POWER INDEX CHART
+            renderLivePowerChart(dailyDataForChart, visionDataForChart);
+        }
+
+        function connectAllProtocols() {
+            // Seed a matching set of historical cyber-athletic data
+            const mockVisionHistory = [
+                {
+                    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                    punches: 78,
+                    score: 84,
+                    reflex_tier: 'Amateur',
+                    avg_reflex_ms: 320,
+                    flaw: 'GUARD DROPS ON LEAD SLIPS',
+                    advice: 'Great punch volume today, Viktor. However, your lead hand repeatedly drops to your chest when you slip to the right. Keep that glove pinned to your jaw.',
+                    raw_data: {
+                        drill_data: [
+                            { command: 'Jab', velocity_rating: 'Snappy', reflex_time_ms: 310, extension_speed_ms: 95, form_notes: 'Good extension, but chin was exposed.' },
+                            { command: 'Cross', velocity_rating: 'Explosive', reflex_time_ms: 290, extension_speed_ms: 88, form_notes: 'Beautiful hip rotation and power output.' },
+                            { command: 'Slip Left', velocity_rating: 'Slow', reflex_time_ms: 360, extension_speed_ms: 120, form_notes: 'Rear hand dropped. Vulnerable to counters.' }
+                        ]
+                    }
+                },
+                {
+                    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+                    punches: 92,
+                    score: 91,
+                    reflex_tier: 'Elite',
+                    avg_reflex_ms: 260,
+                    flaw: 'REAR FOOT FLARES OUT',
+                    advice: 'Outstanding hand speed and reaction timing. Focus on anchoring your rear heel on cross delivery to keep balance.',
+                    raw_data: {
+                        drill_data: [
+                            { command: 'Double Jab', velocity_rating: 'Explosive', reflex_time_ms: 250, extension_speed_ms: 82, form_notes: 'Blazing speed. Excellent double activation.' },
+                            { command: 'Roll Under', velocity_rating: 'Snappy', reflex_time_ms: 270, extension_speed_ms: 90, form_notes: 'Perfect level change. Eyes stayed on target.' }
+                        ]
+                    }
+                }
+            ];
+            localStorage.setItem('boxing_session_history', JSON.stringify(mockVisionHistory));
+
+            // Seed Daily progress keys
+            const day1Key = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toDateString();
+            const day2Key = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toDateString();
+            const day3Key = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toDateString();
+
+            localStorage.setItem('workout_progress_' + day1Key, JSON.stringify([0, 1, 2]));
+            localStorage.setItem('workout_progress_' + day2Key, JSON.stringify([0, 1, 2, 3]));
+            localStorage.setItem('workout_progress_' + day3Key, JSON.stringify([0, 1]));
+
+            // Seed Roadmap protocols
+            const mockPlannerDay1 = [
+                { name: 'Stance Calibration Block', completed_at: Date.now() - 2 * 24 * 60 * 60 * 1000, impact: 'High' }
+            ];
+            const mockPlannerDay2 = [
+                { name: 'Counter-Punch Uplink', completed_at: Date.now() - 5 * 24 * 60 * 60 * 1000, impact: 'Elite' }
+            ];
+            localStorage.setItem('planner_drills_completed_' + day1Key, JSON.stringify(mockPlannerDay1));
+            localStorage.setItem('planner_drills_completed_' + day2Key, JSON.stringify(mockPlannerDay2));
+
+            // Trigger feedback
+            if (window.AppSounds && AppSounds.play) {
+                AppSounds.play('success');
+            }
+
+            // Reload visual dashboard
+            loadAnalyticsDashboard();
+
+            // Highlight sync button
+            const syncBtn = document.getElementById('view-all-history-btn');
+            if (syncBtn) {
+                const originalText = syncBtn.innerText;
+                syncBtn.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#000;"></i> SYNCED & CONNECTED`;
+                syncBtn.style.background = 'var(--primary)';
+                syncBtn.style.color = '#000';
+
+                setTimeout(() => {
+                    syncBtn.innerText = originalText;
+                    syncBtn.style.background = 'transparent';
+                    syncBtn.style.color = 'var(--primary)';
+                }, 3000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAnalyticsDashboard();
         });
 
         function showVisionDetails(index) {

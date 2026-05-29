@@ -40,6 +40,7 @@
     <script src="onboarding-utils.js"></script>
     <script src="sound-effects.js"></script>
     <script src="streak-manager.js"></script>
+    <script src="leaderboard-manager.js"></script>
 
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1118,9 +1119,16 @@
         }
 
         .score-row {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
             gap: 12px;
             margin-top: 16px;
+        }
+
+        @media (max-width: 480px) {
+            .score-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         .score-pill {
@@ -1129,12 +1137,16 @@
             border-radius: 14px;
             padding: 12px;
             text-align: center;
+            min-width: 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .pill-val {
             font-size: 1.2rem;
             font-weight: 950;
             color: #fff;
+            word-break: break-word;
         }
 
         .pill-label {
@@ -1144,6 +1156,22 @@
             letter-spacing: 1px;
             text-transform: uppercase;
             margin-top: 3px;
+            word-break: break-word;
+        }
+
+        @media (max-width: 380px) {
+            .pill-val {
+                font-size: 1rem;
+            }
+
+            .pill-label {
+                font-size: 0.4rem;
+                letter-spacing: 0.5px;
+            }
+
+            .score-pill {
+                padding: 10px 8px;
+            }
         }
 
         /* Drill Chart */
@@ -2004,7 +2032,7 @@
                 <div class="score-flaw"><i class="fa-solid fa-triangle-exclamation"
                         style="color: #f1c40f; margin-right: 6px;"></i><span id="res-flaw">Loading...</span></div>
 
-                <div class="score-row" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="score-row">
                     <div class="score-pill">
                         <div class="pill-val" id="res-overall-score">—</div>
                         <div class="pill-label">Overall<br>Score</div>
@@ -3167,6 +3195,17 @@ No explanations, no numbering, just the list.`;
             renderResults(analysisData);
             showStage('stage-results');
             StreakManager.completeSession();
+
+            // Sync scores to leaderboards
+            if (window.LeaderboardManager && window.db) {
+                const drills = analysisData.drill_data || [];
+                if (drills.length > 0) {
+                    const avgReflex = Math.round(drills.reduce((a, d) => a + (d.reflex_time_ms || 0), 0) / drills.length);
+                    LeaderboardManager.updateReflexScore(avgReflex, window.db).catch(err => 
+                        console.warn('Leaderboard sync warning:', err)
+                    );
+                }
+            }
         }
 
         async function analyzeVideoWithGemini(base64Video, mimeType, commandMetaJSON, profile, reflexPayload) {
@@ -3514,9 +3553,15 @@ Generate one drill_data entry per command: ${commandLog.map(c => c.command).join
 
             // Update Global Streak
             if (window.StreakManager) {
-                StreakManager.completeSession();
+                const streakDays = StreakManager.completeSession();
                 if (window.db) {
                     StreakManager.syncWithSupabase(window.db);
+                    // Also sync streak days to leaderboard
+                    if (window.LeaderboardManager) {
+                        LeaderboardManager.updateStreakScore(streakDays, window.db).catch(err => 
+                            console.warn('Streak leaderboard sync warning:', err)
+                        );
+                    }
                 }
             }
         }
