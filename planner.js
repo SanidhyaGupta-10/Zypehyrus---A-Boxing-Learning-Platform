@@ -7,7 +7,8 @@ const StreakManager = window.StreakManager;
 const AppSounds = window.AppSounds;
 const Z = window.ZephyrOnboarding;
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_GEMINI_KEY || '';
+const env = (typeof import !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
+const API_KEY = env.VITE_GEMINI_API_KEY || env.VITE_GEMINI_KEY || window.VITE_GEMINI_API_KEY || window.NEXT_PUBLIC_GEMINI_API_KEY || window.GEMINI_API_KEY || '';
 const mount = document.getElementById('planner-mount');
 const onboardingPrompt = document.getElementById('onboarding-prompt');
 const onboardingPlannerSetup = document.getElementById('onboarding-planner-setup');
@@ -34,8 +35,10 @@ function showPlannerLoading(message) {
 
 async function fetchPlanFromGemini(userData) {
     const backendBase =
-        import.meta.env.VITE_BACKEND_URL ||
-        import.meta.env.VITE_API_URL ||
+        env.VITE_BACKEND_URL ||
+        env.VITE_API_URL ||
+        window.VITE_BACKEND_URL ||
+        window.VITE_API_URL ||
         window.NEXT_PUBLIC_API_URL ||
         window.ZEPHYR_API_BASE ||
         'http://localhost:3000';
