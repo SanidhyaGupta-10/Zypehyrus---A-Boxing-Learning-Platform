@@ -1162,24 +1162,37 @@
         </nav>
     </div> <!-- end app-container -->
 
-    <!-- Firebase v9 compat (CDN) -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="user-profile.js"></script>
+    <script>
+        // ══════════════════════════════════════════
+        //  SUPABASE INIT
+        // ══════════════════════════════════════════
+        let supabase = null;
+        async function initSupabase() {
+            if (window.supabaseClient) {
+                supabase = window.supabaseClient;
+                return;
+            }
+            if (typeof window !== 'undefined' && window.supabase) {
+                supabase = window.supabase;
+                return;
+            }
+            // Fallback - try loading from imported module
+            try {
+                const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
+                const URL = localStorage.getItem('VITE_SUPABASE_URL') || window.VITE_SUPABASE_URL || window.NEXT_PUBLIC_SUPABASE_URL || '';
+                const KEY = localStorage.getItem('VITE_SUPABASE_ANON_KEY') || window.VITE_SUPABASE_ANON_KEY || window.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+                if (URL && KEY) {
+                    supabase = createClient(URL, KEY);
+                }
+            } catch (e) {
+                console.warn('Supabase init failed:', e);
+            }
+        }
+    </script>
     <script type="module">
-        // ══════════════════════════════════════════
-        //  FIREBASE INIT
-        // ══════════════════════════════════════════
-        const firebaseConfig = {
-            apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-            authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
-            projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-            storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebasestorage.app`,
-            messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-            appId: import.meta.env.VITE_FIREBASE_APP_ID
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        // Ensure Supabase is initialized
+        await initSupabase();
 
         // Player name from onboarding data
         function getPlayerName() {
@@ -1187,78 +1200,114 @@
             return (d.ring_name || 'FIGHTER').toUpperCase();
         }
 
-        // ── Leaderboard collections ──
-        const LB_RT = 'lb_reaction_tap_v2';   // lower avg is better
-        const LB_CF = 'lb_combo_flash_v2';    // higher avg score is better
+        // ── Leaderboard tables ──
+        const LB_RT = 'leaderboard_reflex_reaction_tap';   // lower avg is better
+        const LB_CF = 'leaderboard_reflex_combo_flash';    // higher avg score is better
         const MAX_LB = 100;
 
-        // ── Submit a score to a leaderboard collection ──
+        // ── Submit a score to a leaderboard table ──
         // For RT: scoreValue = avg reaction time (lower = better)
         // For CF: scoreValue = avg score per level (higher = better)
-        async function submitScore(collection, scoreValue, displayValue) {
-            const name = getPlayerName();
-            const entry = { name, score: scoreValue, display: displayValue, ts: Date.now() };
-
-            // Check if player already has an entry
-            const existing = await db.collection(collection).where('name', '==', name).get();
-
-            if (!existing.empty) {
-                const doc = existing.docs[0];
-                const old = doc.data().score;
-                const isBetter = collection === LB_RT ? scoreValue < old : scoreValue > old;
-                if (isBetter) {
-                    await doc.ref.update(entry);
-                }
-            } else {
-                await db.collection(collection).add(entry);
-            }
-
-            // Refresh UI
-            loadLeaderboard(collection);
-        }
-
-        async function loadLeaderboard(collection) {
-            const isLower = collection === LB_RT;
-            const order = isLower ? 'asc' : 'desc';
-            const bodyId = collection === LB_RT ? 'rt-lb-body' : 'cf-lb-body';
-            const rankBadgeId = collection === LB_RT ? 'rt-rank-text' : 'cf-rank-text';
-            const scoreLabel = collection === LB_RT ? 's avg' : ' avg pts';
-
-            const snap = await db.collection(collection).orderBy('score', order).limit(MAX_LB).get();
-            const body = document.getElementById(bodyId);
-
-            if (snap.empty) {
-                body.innerHTML = '<div class="lb-empty">No scores yet — be the first!</div>';
-                document.getElementById(rankBadgeId).textContent = '-- RANK';
+        async function submitScore(tableName, scoreValue, displayValue) {
+            if (!supabase) {
+                console.warn('Supabase not initialized, cannot submit score');
                 return;
             }
 
-            const myName = getPlayerName();
-            let myRank = null;
-            let html = '';
+            const name = getPlayerName();
+            const entry = { 
+                player_name: name, 
+                score: scoreValue, 
+                display_score: displayValue, 
+                created_at: new Date().toISOString() 
+            };
 
-            snap.docs.forEach((doc, i) => {
-                const d = doc.data();
-                const rank = i + 1;
-                const posClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
-                const posIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
-                const isMe = d.name === myName;
-                if (isMe) myRank = rank;
+            try {
+                // Check if player already has an entry
+                const { data: existing, error: err } = await supabase
+                    .from(tableName)
+                    .select('id, score')
+                    .eq('player_name', name)
+                    .single();
 
-                html += `<div class="lb-row${isMe ? ' me' : ''}">
-                <div class="lb-pos ${posClass}">${posIcon}</div>
-                <div class="lb-name">${isMe ? '★ ' : ''}${d.name}</div>
-                <div class="lb-score">${d.display}${scoreLabel}</div>
-            </div>`;
-            });
+                if (existing && !err) {
+                    const old = existing.score;
+                    const isBetter = tableName === LB_RT ? scoreValue < old : scoreValue > old;
+                    if (isBetter) {
+                        await supabase.from(tableName).update(entry).eq('id', existing.id);
+                    }
+                } else {
+                    // Create new entry
+                    await supabase.from(tableName).insert([entry]);
+                }
 
-            body.innerHTML = html;
+                // Refresh UI
+                await loadLeaderboard(tableName);
+            } catch (e) {
+                console.error('Score submission error:', e);
+            }
+        }
 
-            // Update rank badge on card
-            if (myRank) {
-                document.getElementById(rankBadgeId).textContent = `#${myRank} RANK`;
-            } else {
-                document.getElementById(rankBadgeId).textContent = 'NOT RANKED';
+        async function loadLeaderboard(tableName) {
+            if (!supabase) {
+                console.warn('Supabase not initialized, cannot load leaderboard');
+                return;
+            }
+
+            const isLower = tableName === LB_RT;
+            const order = isLower ? 'asc' : 'desc';
+            const bodyId = tableName === LB_RT ? 'rt-lb-body' : 'cf-lb-body';
+            const rankBadgeId = tableName === LB_RT ? 'rt-rank-text' : 'cf-rank-text';
+            const scoreLabel = tableName === LB_RT ? 's avg' : ' avg pts';
+
+            try {
+                const { data: rows, error } = await supabase
+                    .from(tableName)
+                    .select('id, player_name, score, display_score, created_at')
+                    .order('score', { ascending: isLower })
+                    .limit(MAX_LB);
+
+                if (error) throw error;
+
+                const body = document.getElementById(bodyId);
+
+                if (!rows || rows.length === 0) {
+                    body.innerHTML = '<div class="lb-empty">No scores yet — be the first!</div>';
+                    document.getElementById(rankBadgeId).textContent = '-- RANK';
+                    return;
+                }
+
+                const myName = getPlayerName();
+                let myRank = null;
+                let html = '';
+
+                rows.forEach((row, i) => {
+                    const rank = i + 1;
+                    const posClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+                    const posIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+                    const isMe = row.player_name === myName;
+                    if (isMe) myRank = rank;
+
+                    const displayVal = row.display_score || row.score;
+                    html += `<div class="lb-row${isMe ? ' me' : ''}">
+                        <div class="lb-pos ${posClass}">${posIcon}</div>
+                        <div class="lb-name">${isMe ? '★ ' : ''}${row.player_name}</div>
+                        <div class="lb-score">${displayVal}${scoreLabel}</div>
+                    </div>`;
+                });
+
+                body.innerHTML = html;
+
+                // Update rank badge on card
+                if (myRank) {
+                    document.getElementById(rankBadgeId).textContent = `#${myRank} RANK`;
+                } else {
+                    document.getElementById(rankBadgeId).textContent = 'NOT RANKED';
+                }
+            } catch (e) {
+                console.error('Leaderboard load error:', e);
+                const bodyId = tableName === LB_RT ? 'rt-lb-body' : 'cf-lb-body';
+                document.getElementById(bodyId).innerHTML = '<div class="lb-empty">Unable to load leaderboard</div>';
             }
         }
 
@@ -1287,11 +1336,11 @@
 
             // Mark streak as complete for the day
             StreakManager.completeSession();
-            // Sync with Firebase
-            if (window.db) {
-                StreakManager.syncWithFirebase(window.db);
-            } else if (db) {
-                StreakManager.syncWithFirebase(db);
+            // Sync with Supabase
+            if (window.supabaseClient) {
+                StreakManager.syncWithSupabase(window.supabaseClient);
+            } else if (supabase) {
+                StreakManager.syncWithSupabase(supabase);
             }
         }
         function updateTrackerUI() {
@@ -1517,7 +1566,14 @@
         // ══════════════════════════════════════════
         //  INIT
         // ══════════════════════════════════════════
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize Supabase
+            try {
+                await initSupabase();
+            } catch (e) {
+                console.warn('Supabase initialization failed:', e);
+            }
+
             updateTrackerUI();
             const bestRT = localStorage.getItem(RT_KEY);
             if (bestRT) {
@@ -1530,16 +1586,24 @@
                 }
             }
             document.getElementById('combo-best').textContent = localStorage.getItem(COMBO_BEST_KEY) || '--';
+            
             // Load both leaderboards
-            loadLeaderboard(LB_RT);
-            loadLeaderboard(LB_CF);
+            try {
+                await loadLeaderboard(LB_RT);
+                await loadLeaderboard(LB_CF);
+            } catch (e) {
+                console.warn('Leaderboard load failed:', e);
+            }
 
+            // Show assessment if not done
             if (!localStorage.getItem('reflex_assessment_done')) {
-                showAssessment();
+                setTimeout(() => showAssessment(), 500);
             }
 
             // Populate Nav Streak
-            StreakManager.updateBadges();
+            if (window.StreakManager) {
+                StreakManager.updateBadges();
+            }
         });
 
         // ══════════════════════════════════════════
