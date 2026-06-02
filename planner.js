@@ -35,6 +35,7 @@ function showPlannerLoading(message) {
 async function fetchPlanFromGemini(userData) {
     const backendBase =
         import.meta.env.VITE_BACKEND_URL ||
+        import.meta.env.VITE_API_URL ||
         window.NEXT_PUBLIC_API_URL ||
         window.ZEPHYR_API_BASE ||
         'http://localhost:3000';
