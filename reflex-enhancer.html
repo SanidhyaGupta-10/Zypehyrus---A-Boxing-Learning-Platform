@@ -1597,7 +1597,10 @@
 
             // Show assessment if not done
             if (!localStorage.getItem('reflex_assessment_done')) {
-                setTimeout(() => showAssessment(), 500);
+                console.log('[Reflex] First visit - showing assessment overlay');
+                showAssessment();
+            } else {
+                console.log('[Reflex] Assessment already done, skipping overlay');
             }
 
             // Populate Nav Streak
@@ -1755,6 +1758,7 @@
         }
 
         // Expose to window for HTML onclick handlers
+        window.showAssessment = showAssessment;
         window.startReactionGame = startReactionGame;
         window.comboInput = comboInput;
         window.startComboGame = startComboGame;

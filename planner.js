@@ -193,14 +193,21 @@ async function generatePlan(userData, todayDateStr) {
         console.error('[Planner] Gemini generation failed:', error);
         AppSounds?.play?.('error');
         
-        const errorMessage = error?.message || 'Unknown error occurred';
+        const errorMessage = error?.message || 'Gemini AI is offline. Check your connection and try again.';
+        if (!mount) {
+            console.error('[Planner] Mount element not found');
+            return;
+        }
+        
         mount.innerHTML = `
-            <div style="padding: 80px 32px; text-align: center; color: #ff4444;">
-                <i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; margin-bottom: 20px;"></i>
-                <h2 style="font-weight: 900; text-transform: uppercase;">GEMINI OFFLINE</h2>
-                <p style="font-size: 0.8rem; color: var(--zinc-500); margin-top: 10px; line-height: 1.5;">${errorMessage}</p>
-                <p style="font-size: 0.65rem; color: #666; margin-top: 16px;">Troubleshooting: Make sure the backend is running with <code style="background:#222;padding:2px 6px;border-radius:3px;">GEMINI_API_KEY</code> set in <code style="background:#222;padding:2px 6px;border-radius:3px;">.env</code>, or set <code style="background:#222;padding:2px 6px;border-radius:3px;">VITE_GEMINI_API_KEY</code> for direct client access.</p>
-                <button onclick="location.reload()" class="btn-primary hover-scale ripple" style="margin-top: 24px; height: 50px; padding: 0 20px; font-size: 0.8rem; background: var(--neon); color: #000; border: none; font-weight: 950; border-radius: 25px; cursor: pointer;">RETRY GEMINI</button>
+            <div style="padding: 80px 32px; text-align: center;">
+                <div style="color: #ff4444;">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; margin-bottom: 20px; display: block;"></i>
+                    <h2 style="font-weight: 900; text-transform: uppercase; margin-bottom: 15px;">GEMINI OFFLINE</h2>
+                    <p style="font-size: 0.8rem; color: var(--zinc-500); margin-bottom: 16px; line-height: 1.5;">${errorMessage}</p>
+                    <p style="font-size: 0.65rem; color: #666; margin-bottom: 24px;">Make sure backend is running with <code style="background:#222;padding:2px 6px;border-radius:3px;">GEMINI_API_KEY</code> set in <code style="background:#222;padding:2px 6px;border-radius:3px;">.env</code></p>
+                    <button onclick="location.reload()" style="background: var(--neon); color: #000; border: none; font-weight: 950; border-radius: 25px; cursor: pointer; padding: 12px 24px; font-size: 0.8rem; text-transform: uppercase;">RETRY</button>
+                </div>
             </div>
         `;
     }
