@@ -95,7 +95,7 @@ app.post('/api/generate-plan', async (req: Request, res: Response) => {
     }
 });
 
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
     res.json({ status: 'healthy' });
 });
 
