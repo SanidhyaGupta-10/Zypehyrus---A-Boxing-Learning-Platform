@@ -575,6 +575,7 @@
         
         const StreakManager = window.StreakManager;
         const GM = window.GuruMedia;
+        const TD = window.techniquesData || {};
 
         function categoryNavLabel(cat) {
             let catLabel = cat.toUpperCase();
@@ -589,7 +590,10 @@
             if (!container) return;
             container.innerHTML = '';
 
-            if (!items) return;
+            if (!items || items.length === 0) {
+                container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: #555; font-size: 0.7rem;">No techniques yet</div>`;
+                return;
+            }
 
             items.forEach(item => {
                 const div = document.createElement('div');
@@ -599,36 +603,40 @@
                 };
 
                 const subtitle = item.subtitle
-                    ? `<div class="tech-subtitle">${GM.escapeHtml(item.subtitle)}</div>`
+                    ? `<div class="tech-subtitle">${GM?.escapeHtml?.(item.subtitle) || item.subtitle}</div>`
                     : '';
                 const descPreview = item.desc
-                    ? `<p class="tech-desc-preview">${GM.escapeHtml(GM.truncate(item.desc, 88))}</p>`
+                    ? `<p class="tech-desc-preview">${GM?.escapeHtml?.(GM?.truncate?.(item.desc, 88) || item.desc) || item.desc}</p>`
                     : '';
 
                 div.innerHTML = `
                     ${item.isAiPick ? '<div class="ai-pick-badge">AI PICK</div>' : ''}
                     <div class="tech-image-area">
-                        <img src="${item.image}" alt="${GM.escapeHtml(item.name)}" loading="lazy" decoding="async">
+                        <img src="${item.image}" alt="${item.name}" loading="lazy" decoding="async">
                     </div>
-                    <div class="tech-name">${GM.escapeHtml(item.name)}</div>
+                    <div class="tech-name">${item.name}</div>
                     ${subtitle}
                     ${descPreview}
                     <div class="eff-bar-track">
-                        <div class="eff-bar-fill" style="width: ${item.score}%"></div>
+                        <div class="eff-bar-fill" style="width: ${item.score || 75}%"></div>
                     </div>
-                    <div class="eff-label">EFFECTIVENESS: ${item.score}%</div>
+                    <div class="eff-label">EFFECTIVENESS: ${item.score || 75}%</div>
                 `;
                 const img = div.querySelector('img');
-                img.addEventListener('error', () => GM.onImageError(img, item.name, categoryKey));
+                if (img && GM?.onImageError) {
+                    img.addEventListener('error', () => GM.onImageError(img, item.name, categoryKey));
+                }
                 container.appendChild(div);
             });
         }
 
         function buildCatalog(extraCustom) {
-            let combined = GM.hydrateCatalog(window.techniquesData || {});
-            GM.mergeCustomTechniques(combined, GM.loadLocalCustom());
-            if (extraCustom && extraCustom.length) {
-                GM.mergeCustomTechniques(combined, extraCustom);
+            let combined = GM?.hydrateCatalog?.(TD) || TD;
+            if (GM?.mergeCustomTechniques) {
+                GM.mergeCustomTechniques(combined, GM.loadLocalCustom?.() || []);
+                if (extraCustom && extraCustom.length) {
+                    GM.mergeCustomTechniques(combined, extraCustom);
+                }
             }
             return combined;
         }
@@ -637,11 +645,13 @@
             let totalCount = 0;
             let totalScore = 0;
 
-            GM.CATEGORIES.forEach(cat => {
+            const categories = GM?.CATEGORIES || ['stances', 'punches', 'kicks', 'defense'];
+            
+            categories.forEach(cat => {
                 const catItems = combinedData[cat];
-                if (!catItems) return;
+                if (!catItems || catItems.length === 0) return;
                 totalCount += catItems.length;
-                catItems.forEach(i => { totalScore += i.score; });
+                catItems.forEach(i => { totalScore += (i.score || 75); });
                 renderGrid(cat + '-grid', catItems, categoryNavLabel(cat), cat);
             });
 
@@ -656,25 +666,56 @@
             }, 100);
         }
 
-        function fetchRemoteCustom(timeoutMs) {
-            return Promise.race([
-                db.from('techniques').select('*').then(({ data, error }) => {
-                    if (error || !data) return [];
-                    return data;
-                }),
-                new Promise(resolve => setTimeout(() => resolve([]), timeoutMs))
-            ]).catch(() => []);
+        async function fetchRemoteCustom(timeoutMs) {
+            try {
+                if (!db) {
+                    console.warn('[Guru] Supabase client not available, using local techniques only');
+                    return [];
+                }
+                
+                const result = await Promise.race([
+                    db.from('techniques').select('*').catch(e => {
+                        console.warn('[Guru] Remote techniques fetch failed:', e);
+                        return { data: null, error: e };
+                    }),
+                    new Promise(resolve => setTimeout(() => resolve({ data: null, error: 'timeout' }), timeoutMs))
+                ]);
+                
+                if (result && result.data && Array.isArray(result.data)) {
+                    console.log('[Guru] Fetched remote techniques:', result.data.length);
+                    return result.data;
+                }
+                return [];
+            } catch (err) {
+                console.warn('[Guru] Error fetching remote custom techniques:', err);
+                return [];
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             // Instant render from local catalog (no network wait)
-            renderPage(buildCatalog());
-            StreakManager?.updateBadges?.();
+            try {
+                const catalog = buildCatalog();
+                renderPage(catalog);
+            } catch (e) {
+                console.error('[Guru] Error rendering local catalog:', e);
+            }
+            
+            if (StreakManager?.updateBadges) {
+                StreakManager.updateBadges();
+            }
 
             // Merge cloud custom techniques when available (2.5s cap)
             fetchRemoteCustom(2500).then(remote => {
-                if (!remote.length) return;
-                renderPage(buildCatalog(remote));
+                if (!remote || !remote.length) return;
+                console.log('[Guru] Merging remote techniques...');
+                try {
+                    renderPage(buildCatalog(remote));
+                } catch (e) {
+                    console.error('[Guru] Error rendering with remote techniques:', e);
+                }
+            }).catch(e => {
+                console.warn('[Guru] Remote techniques fetch error:', e);
             });
 
             // Set up Modal Interactions
@@ -688,14 +729,16 @@
                     modal.style.display = 'flex';
                     setTimeout(() => {
                         modal.style.opacity = '1';
-                        modal.querySelector('.modal-card').style.transform = 'translateY(0)';
+                        const card = modal.querySelector('.modal-card');
+                        if (card) card.style.transform = 'translateY(0)';
                     }, 50);
                     if (window.AppSounds) window.AppSounds.play('click');
                 };
 
                 const closeModal = () => {
                     modal.style.opacity = '0';
-                    modal.querySelector('.modal-card').style.transform = 'translateY(100%)';
+                    const card = modal.querySelector('.modal-card');
+                    if (card) card.style.transform = 'translateY(100%)';
                     setTimeout(() => {
                         modal.style.display = 'none';
                     }, 300);
@@ -707,60 +750,64 @@
                     if (e.target === modal) closeModal();
                 };
 
-                form.onsubmit = async (e) => {
-                    e.preventDefault();
-                    
-                    const name = document.getElementById('tech-form-name').value.trim();
-                    const category = document.getElementById('tech-form-category').value;
-                    const score = parseInt(document.getElementById('tech-form-score').value) || 80;
-                    const subtitle = document.getElementById('tech-form-subtitle').value.trim();
-                    const desc = document.getElementById('tech-form-desc').value.trim();
-                    const stepsText = document.getElementById('tech-form-steps').value.trim();
-                    
-                    const steps = stepsText.split('\n').map(s => s.trim()).filter(Boolean);
-                    const id = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    
-                    const newTech = {
-                        id,
-                        category,
-                        name,
-                        subtitle,
-                        image: '',
-                        score,
-                        desc,
-                        steps,
-                        stats: [
-                            { label: "SPEED", val: `${Math.round(40 + Math.random() * 55)}%` },
-                            { label: "POWER", val: `${Math.round(40 + Math.random() * 55)}%` },
-                            { label: "CONTROL", val: `${Math.round(50 + Math.random() * 45)}%` }
-                        ],
-                        pro_tip: "Maintain perfect combat balance and return to guard instantly.",
-                        targets: ["Chin", "Body"],
-                        mistakes: ["Dropping your guard while executing."]
+                if (form) {
+                    form.onsubmit = async (e) => {
+                        e.preventDefault();
+                        
+                        const name = document.getElementById('tech-form-name').value.trim();
+                        const category = document.getElementById('tech-form-category').value;
+                        const score = parseInt(document.getElementById('tech-form-score').value) || 80;
+                        const subtitle = document.getElementById('tech-form-subtitle').value.trim();
+                        const desc = document.getElementById('tech-form-desc').value.trim();
+                        const stepsText = document.getElementById('tech-form-steps').value.trim();
+                        
+                        const steps = stepsText.split('\n').map(s => s.trim()).filter(Boolean);
+                        const id = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+                        
+                        const newTech = {
+                            id,
+                            category,
+                            name,
+                            subtitle,
+                            image: '',
+                            score,
+                            desc,
+                            steps,
+                            stats: [
+                                { label: "SPEED", val: `${Math.round(40 + Math.random() * 55)}%` },
+                                { label: "POWER", val: `${Math.round(40 + Math.random() * 55)}%` },
+                                { label: "CONTROL", val: `${Math.round(50 + Math.random() * 45)}%` }
+                            ],
+                            pro_tip: "Maintain perfect combat balance and return to guard instantly.",
+                            targets: ["Chin", "Body"],
+                            mistakes: ["Dropping your guard while executing."]
+                        };
+                        
+                        try {
+                            console.log('[Guru] Syncing custom technique to Supabase:', newTech);
+                            if (!db) throw new Error('Supabase client not initialized');
+                            
+                            const { error } = await db.from('techniques').insert([newTech]);
+                            if (error) throw error;
+                            
+                            if (window.AppSounds) window.AppSounds.play('success');
+                            alert("Technique successfully deployed to AI core!");
+                        } catch (err) {
+                            console.warn('[Guru] Database sync failed. Saving locally to localStorage:', err);
+                            
+                            // LocalStorage Fallback
+                            const local = JSON.parse(localStorage.getItem('custom_techniques') || '[]');
+                            local.push(newTech);
+                            localStorage.setItem('custom_techniques', JSON.stringify(local));
+                            
+                            if (window.AppSounds) window.AppSounds.play('success');
+                            alert("Technique saved locally (Database Link Offline). It will be active on this device.");
+                        }
+                        
+                        closeModal();
+                        location.reload();
                     };
-                    
-                    try {
-                        console.log('[Guru] Syncing custom technique to Supabase:', newTech);
-                        const { error } = await db.from('techniques').insert([newTech]);
-                        if (error) throw error;
-                        
-                        if (window.AppSounds) window.AppSounds.play('success');
-                        alert("Technique successfully deployed to AI core!");
-                    } catch (err) {
-                        console.warn('[Guru] Database sync failed. Saving locally to localStorage:', err);
-                        
-                        // LocalStorage Fallback
-                        const local = JSON.parse(localStorage.getItem('custom_techniques') || '[]');
-                        local.push(newTech);
-                        localStorage.setItem('custom_techniques', JSON.stringify(local));
-                        
-                        if (window.AppSounds) window.AppSounds.play('success');
-                        alert("Technique saved locally (Database Link Offline). It will be active on this device.");
-                    }
-                    
-                    closeModal();
-                    location.reload();
-                };
+                }
             }
         });
     </script>
