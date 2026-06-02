@@ -92,6 +92,17 @@ function legacyAppPlugin(): Plugin {
 
 export default defineConfig({
     plugins: [react(), legacyAppPlugin()],
+    build: {
+        rollupOptions: {
+            input: {
+                main: path.resolve(__dirname, 'index.html'),
+                dashboard: path.resolve(repoRoot, 'dashboard.html'),
+                planner: path.resolve(repoRoot, 'planner.html'),
+                'planner-config': path.resolve(repoRoot, 'planner-config.html'),
+                'vision-analyser': path.resolve(repoRoot, 'vision-analyser.html'),
+            },
+        },
+    },
     server: {
         port: 3000,
         fs: { allow: ['..'] },
