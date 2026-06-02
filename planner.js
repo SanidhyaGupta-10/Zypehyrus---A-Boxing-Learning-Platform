@@ -46,11 +46,19 @@ async function fetchPlanFromGemini(userData) {
 
     try {
         console.log('[Planner] Requesting plan from Gemini via backend:', backendUrl);
+        
+        // Create an abort controller with 30-second timeout
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000);
+        
         const response = await fetch(backendUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userData }),
+            signal: controller.signal
         });
+        
+        clearTimeout(timeout);
 
         if (response.status === 429) {
             throw new Error('Neural Capacity Reached. Please wait a moment for the uplink to stabilize.');
@@ -61,19 +69,32 @@ async function fetchPlanFromGemini(userData) {
             if (resJson.plan) {
                 console.log('[Planner] Plan received from backend Gemini proxy');
                 return normalizePlan(resJson.plan, userData);
+            } else {
+                throw new Error('Backend returned empty plan');
             }
         } else if (response.status !== 503) {
             const errorText = await response.text();
             console.warn('[Planner] Backend error:', response.status, errorText);
+            throw new Error(`Backend error: ${response.status}`);
         }
     } catch (err) {
-        console.warn('[Planner] Backend Gemini proxy unavailable:', err.message);
+        if (err.name === 'AbortError') {
+            console.warn('[Planner] Backend request timeout (30s)');
+        } else {
+            console.warn('[Planner] Backend Gemini proxy failed:', err.message);
+        }
     }
 
+    // Fallback: Try direct Gemini API
     if (API_KEY && window.PlannerGemini) {
         console.log('[Planner] Calling Gemini API directly from client');
-        const raw = await window.PlannerGemini.generatePlanViaGemini(API_KEY, userData);
-        return normalizePlan(raw, userData);
+        try {
+            const raw = await window.PlannerGemini.generatePlanViaGemini(API_KEY, userData);
+            return normalizePlan(raw, userData);
+        } catch (e) {
+            console.warn('[Planner] Direct Gemini API failed:', e.message);
+            throw e;
+        }
     }
 
     throw new Error(
@@ -155,6 +176,10 @@ async function generatePlan(userData, todayDateStr) {
     try {
         const plan = await fetchPlanFromGemini(userData);
 
+        if (!plan) {
+            throw new Error('No plan was generated. Please try again.');
+        }
+
         localStorage.setItem('active_boxing_plan_v2', JSON.stringify(plan));
         localStorage.setItem('last_plan_gen_date_v2', todayDateStr);
         savePlannerConfigFingerprint(userData);
@@ -167,13 +192,15 @@ async function generatePlan(userData, todayDateStr) {
     } catch (error) {
         console.error('[Planner] Gemini generation failed:', error);
         AppSounds?.play?.('error');
+        
+        const errorMessage = error?.message || 'Unknown error occurred';
         mount.innerHTML = `
             <div style="padding: 80px 32px; text-align: center; color: #ff4444;">
                 <i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; margin-bottom: 20px;"></i>
                 <h2 style="font-weight: 900; text-transform: uppercase;">GEMINI OFFLINE</h2>
-                <p style="font-size: 0.8rem; color: var(--zinc-500); margin-top: 10px; line-height: 1.5;">${error.message}</p>
-                <p style="font-size: 0.65rem; color: #666; margin-top: 16px;">Ensure <code>GEMINI_API_KEY</code> is in <code>.env</code> and run <code>npm start</code>, or add <code>VITE_GEMINI_API_KEY</code> to <code>.env</code> for Vite.</p>
-                <button onclick="location.reload()" class="btn-primary hover-scale ripple" style="margin-top: 24px; height: 50px; padding: 0 20px; font-size: 0.8rem;">RETRY GEMINI</button>
+                <p style="font-size: 0.8rem; color: var(--zinc-500); margin-top: 10px; line-height: 1.5;">${errorMessage}</p>
+                <p style="font-size: 0.65rem; color: #666; margin-top: 16px;">Troubleshooting: Make sure the backend is running with <code style="background:#222;padding:2px 6px;border-radius:3px;">GEMINI_API_KEY</code> set in <code style="background:#222;padding:2px 6px;border-radius:3px;">.env</code>, or set <code style="background:#222;padding:2px 6px;border-radius:3px;">VITE_GEMINI_API_KEY</code> for direct client access.</p>
+                <button onclick="location.reload()" class="btn-primary hover-scale ripple" style="margin-top: 24px; height: 50px; padding: 0 20px; font-size: 0.8rem; background: var(--neon); color: #000; border: none; font-weight: 950; border-radius: 25px; cursor: pointer;">RETRY GEMINI</button>
             </div>
         `;
     }
