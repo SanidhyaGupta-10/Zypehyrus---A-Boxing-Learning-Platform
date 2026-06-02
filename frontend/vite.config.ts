@@ -7,20 +7,22 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 
-const LEGACY_ROOT_FILES = [
-    'dashboard.html',
-    'planner.html',
-    'planner-config.html',
-    'planner.js',
-    'vision-analyser.html',
-    'onboarding-utils.js',
-    'style.css',
-    'auth.js',
-    'streak-manager.js',
-    'notification-manager.js',
-    'user-profile.js',
-    'sound-effects.js',
-];
+const LEGACY_FILE_EXTENSIONS = new Set([
+    '.html',
+    '.css',
+    '.js',
+    '.mjs',
+    '.json',
+    '.ico',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.svg',
+    '.webp',
+    '.woff2',
+    '.woff',
+    '.ttf',
+]);
 
 const MIME: Record<string, string> = {
     '.html': 'text/html',
@@ -34,15 +36,38 @@ const MIME: Record<string, string> = {
     '.jpeg': 'image/jpeg',
     '.svg': 'image/svg+xml',
     '.webp': 'image/webp',
+    '.woff2': 'font/woff2',
+    '.woff': 'font/woff',
+    '.ttf': 'font/ttf',
 };
 
 function copyLegacyFiles(outDir: string) {
-    for (const file of LEGACY_ROOT_FILES) {
-        const src = path.join(repoRoot, file);
-        if (fs.existsSync(src)) {
-            fs.copyFileSync(src, path.join(outDir, file));
-        }
+    const ignoreFiles = new Set([
+        'package.json',
+        'package-lock.json',
+        'yarn.lock',
+        'pnpm-lock.yaml',
+        'frontend',
+        'node_modules',
+        'vercel.json',
+        'cloudbuild.yaml',
+        'vite.config.ts',
+        'tsconfig.json',
+        'README.md',
+    ]);
+
+    for (const name of fs.readdirSync(repoRoot)) {
+        if (ignoreFiles.has(name)) continue;
+
+        const src = path.join(repoRoot, name);
+        if (!fs.statSync(src).isFile()) continue;
+
+        const ext = path.extname(name).toLowerCase();
+        if (!LEGACY_FILE_EXTENSIONS.has(ext)) continue;
+
+        fs.copyFileSync(src, path.join(outDir, name));
     }
+
     const publicDir = path.join(repoRoot, 'public');
     if (fs.existsSync(publicDir)) {
         for (const name of fs.readdirSync(publicDir)) {
