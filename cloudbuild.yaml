@@ -1,0 +1,18 @@
+steps:
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        gcloud config set project "$PROJECT_ID"
+        gcloud run deploy boxing-backend \
+          --region=europe-west1 \
+          --platform=managed \
+          --source=backend \
+          --allow-unauthenticated \
+          --quiet
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: "1200s"
