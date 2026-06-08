@@ -29,6 +29,7 @@
     <script src="streak-manager.js"></script>
     <script src="sound-effects.js"></script>
     <script src="notification-manager.js"></script>
+    <script src="workout-data.js"></script>
     <style>
         .hud-highlight {
             background: rgba(var(--primary-rgb), 0.15) !important;
@@ -755,40 +756,45 @@
 
                 %<br><span style="font-size: 0.45rem; font-style: normal; opacity: 0.7;" >DONE</span>`;
 
-                // Update HUD Goal item based on the first drill
+                // Update HUD Goal item based on the first uncompleted daily session drill
                 const hudGoalElem = document.getElementById('dash-hud-goal-text');
                 const hudContainer = hudGoalElem.closest('.hud-item');
                 const challengeCard = document.querySelector('.challenge-card-v2');
 
                 if (workout.drills.length > 0) {
-                    const firstDrill = workout.drills[0];
+                    const uncompletedIndex = workout.drills.findIndex((_, idx) => !completedIndices.includes(idx));
+                    const nextDrill = uncompletedIndex !== -1 ? workout.drills[uncompletedIndex] : null;
 
-                    hudGoalElem.innerText = `Daily Focus: ${firstDrill.name
+                    if (!nextDrill) {
+                        hudGoalElem.innerText = `Daily Goal: All Sessions Complete!`;
+                        document.getElementById('dash-hud-goal-val').innerHTML = '<i class="fa-solid fa-check" style="color:#1abc9c;"></i>';
+                        if (hudContainer) hudContainer.style.borderColor = "#1abc9c";
+                    } else {
+                        hudGoalElem.innerText = `Daily Goal: ${nextDrill.name}`;
+
+                        if (nextDrill.isPlanner) {
+                            if (hudContainer) hudContainer.classList.add('hud-highlight');
+                            if (challengeCard) challengeCard.classList.add('card-highlight');
+                            const cardTitle = document.querySelector('.challenge-card-v2 h3');
+                            if (cardTitle) cardTitle.classList.add('text-neon-bright');
+                            document.getElementById('dash-challenge-desc').innerText = "STRATEGIC PROTOCOL ACTIVE";
                         }
 
-                    `;
+                        // extract numeric metric value
+                        let goalVal = "GO";
 
-                    if (firstDrill.isPlanner) {
-                        if (hudContainer) hudContainer.classList.add('hud-highlight');
-                        if (challengeCard) challengeCard.classList.add('card-highlight');
-                        const cardTitle = document.querySelector('.challenge-card-v2 h3');
-                        if (cardTitle) cardTitle.classList.add('text-neon-bright');
-                        document.getElementById('dash-challenge-desc').innerText = "STRATEGIC PROTOCOL ACTIVE";
+                        if (nextDrill.duration) {
+                            goalVal = Math.round(nextDrill.duration / 60) + 'm';
+                            if (goalVal === '0m') goalVal = nextDrill.duration + 's';
+                        }
+
+                        else if (nextDrill.reps) {
+                            const match = nextDrill.reps.match(/\d+(?=reps)/i) || nextDrill.reps.match(/\d+/);
+                            if (match) goalVal = match[0];
+                        }
+
+                        document.getElementById('dash-hud-goal-val').innerHTML = goalVal;
                     }
-
-                    // extract numeric metric value
-                    let goalVal = "GO";
-
-                    if (firstDrill.duration) {
-                        goalVal = Math.floor(firstDrill.duration / 60) + 'm';
-                    }
-
-                    else if (firstDrill.reps) {
-                        const match = firstDrill.reps.match(/\d+(?=reps)/i) || firstDrill.reps.match(/\d+/);
-                        if (match) goalVal = match[0];
-                    }
-
-                    document.getElementById('dash-hud-goal-val').innerHTML = goalVal;
                 }
             }
 

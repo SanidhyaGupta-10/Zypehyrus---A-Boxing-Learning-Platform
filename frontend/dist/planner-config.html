@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Planner Setup - AI Boxing Guru</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="onboarding-body-lock onboarding-layout">
+    <div class="app-container dashboard-bg">
+        <div class="onboarding-content">
+            <div class="page animate-fade anim-slide-right"
+                style="padding: 0; min-height: auto; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                <header class="header" style="text-align: left; margin-bottom: 20px;">
+                    <div
+                        style="font-size: 0.8rem; font-weight: 800; letter-spacing: 4px; color: var(--primary); margin-bottom: 12px; text-transform: uppercase;">
+                        PLANNER SETUP</div>
+                    <h1 style="font-size: 2.3rem; font-weight: 700; line-height: 1.1; color: var(--text);">Neural
+                        <br><span class="text-neon" style="font-style: italic;">Calibration</span>
+                    </h1>
+                    <p style="color: var(--text-muted); margin-top: 10px; font-size: 0.9rem; line-height: 1.4;">Sync
+                        your session timing with your biological peak.</p>
+                </header>
+
+                <main
+                    style="animation-delay: 0.1s; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 25px;">
+                    <!-- Productivity Peak -->
+                    <div class="section-group">
+                        <label
+                            style="font-size: 0.65rem; font-weight: 900; letter-spacing: 2px; color: var(--primary); text-transform: uppercase; margin-bottom: 15px; display: block;">PRODUCTIVITY
+                            PEAK</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div class="peak-card active" onclick="setPeak(this, 'MORNING')">
+                                <i class="fa-solid fa-sun"></i>
+                                <span>MORNING</span>
+                                <small>05:00 - 11:00</small>
+                            </div>
+                            <div class="peak-card" onclick="setPeak(this, 'AFTERNOON')">
+                                <i class="fa-solid fa-cloud-sun"></i>
+                                <span>AFTERNOON</span>
+                                <small>12:00 - 16:00</small>
+                            </div>
+                            <div class="peak-card" onclick="setPeak(this, 'EVENING')">
+                                <i class="fa-solid fa-moon"></i>
+                                <span>EVENING</span>
+                                <small>17:00 - 21:00</small>
+                            </div>
+                            <div class="peak-card" onclick="setPeak(this, 'NIGHT')">
+                                <i class="fa-solid fa-ghost"></i>
+                                <span>NIGHT</span>
+                                <small>22:00 - 02:00</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Session Time -->
+                    <div class="section-group">
+                        <label
+                            style="font-size: 0.65rem; font-weight: 900; letter-spacing: 2px; color: var(--primary); text-transform: uppercase; margin-bottom: 15px; display: block;">PREFERRED
+                            SESSION START</label>
+                        <div class="glass-card"
+                            style="padding: 20px !important; display: flex; align-items: center; justify-content: space-between;">
+                            <input type="time" id="session-time" value="07:30"
+                                style="background: transparent; border: none; font-family: 'Space Grotesk', sans-serif; font-size: 2rem; font-weight: 900; color: #fff; outline: none; cursor: pointer; width: 100%;">
+                            <i class="fa-solid fa-clock"
+                                style="font-size: 1.5rem; color: var(--primary); opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </main>
+
+                <footer style="margin-top: 25px; text-align: center;">
+                    <button id="next-btn" class="btn-primary hover-scale"
+                        style="width: 100%; height: 75px; border-radius: 100px; font-size: 1.2rem;">
+                        DEPLOY PLANNER <i class="fa-solid fa-rocket" style="margin-left: 10px;"></i>
+                    </button>
+                    <!-- Back goes to dashboard in this flow -->
+                    <a href="dashboard.html"
+                        style="display: block; text-decoration: none; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 2px; font-size: 0.65rem; margin-top: 15px;">CANCEL</a>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .peak-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .peak-card i {
+            font-size: 1.2rem;
+            margin-bottom: 2px;
+            opacity: 0.5;
+        }
+
+        .peak-card span {
+            font-size: 0.65rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+        }
+
+        .peak-card small {
+            font-size: 0.5rem;
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+
+        .peak-card.active {
+            border-color: var(--primary);
+            background: rgba(var(--primary-rgb), 0.05);
+        }
+
+        .peak-card.active i,
+        .peak-card.active span {
+            color: var(--primary);
+            opacity: 1;
+        }
+
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            opacity: 0.5;
+            cursor: pointer;
+        }
+    </style>
+
+    <script type="module">
+        let peakWindow = 'MORNING';
+        window.setPeak = function (el, windowName) {
+            document.querySelectorAll('.peak-card').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            peakWindow = windowName;
+        }
+
+        (function loadSavedPlannerConfig() {
+            const data = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
+            const cfg = data.planner_config;
+            if (!cfg) return;
+            if (cfg.preferred_time) {
+                document.getElementById('session-time').value = cfg.preferred_time;
+            }
+            if (cfg.peak_window) {
+                peakWindow = cfg.peak_window;
+                document.querySelectorAll('.peak-card').forEach((card) => {
+                    const label = card.querySelector('span')?.innerText?.trim();
+                    card.classList.toggle('active', label === cfg.peak_window);
+                });
+            }
+        })();
+
+        document.getElementById('next-btn').onclick = function () {
+            const timeValue = document.getElementById('session-time').value;
+            if (!timeValue) {
+                alert('Select your preferred session start time.');
+                return;
+            }
+            const data = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
+
+            data.planner_config = {
+                peak_window: peakWindow,
+                preferred_time: timeValue,
+            };
+
+            localStorage.setItem('boxing_onboarding_data', JSON.stringify(data));
+            window.location.href = 'planner.html';
+        };
+    </script>
+</body>
+
+</html>

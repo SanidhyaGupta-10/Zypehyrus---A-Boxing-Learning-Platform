@@ -288,6 +288,10 @@ const Login: React.FC = () => {
             setError('Please enter your phone number (digits only, no country code).');
             return;
         }
+        if (!supabase) {
+            setError('Authentication service offline. Please try again later.');
+            return;
+        }
         setLoading(true);
         try {
             const { error: supaErr } = await supabase.auth.signInWithOtp({ phone: fullPhone });
@@ -302,6 +306,10 @@ const Login: React.FC = () => {
 
     const handleVerifyOtp = async () => {
         setError('');
+        if (!supabase) {
+            setError('Authentication service offline. Please try again later.');
+            return;
+        }
         setLoading(true);
         try {
             const { error: supaErr } = await supabase.auth.verifyOtp({

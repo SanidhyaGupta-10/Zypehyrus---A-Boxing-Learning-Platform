@@ -2,6 +2,10 @@ import { supabase } from "./supabase-client.js";
 
 // Check if user is logged in
 export const checkAuthState = (callback) => {
+    if (!supabase) {
+        callback(false, null);
+        return;
+    }
     supabase.auth.onAuthStateChange((event, session) => {
         if (session) {
             callback(true, session.user);
@@ -14,6 +18,7 @@ export const checkAuthState = (callback) => {
 // Register with Email
 export const registerWithEmail = async (email, password) => {
     try {
+        if (!supabase) throw new Error('Database offline. Registration unavailable.');
         const { data, error } = await supabase.auth.signUp({
             email,
             password
@@ -37,6 +42,7 @@ export const registerWithEmail = async (email, password) => {
 // Simple Email Login
 export const loginWithEmail = async (email, password) => {
     try {
+        if (!supabase) throw new Error('Database offline. Login unavailable.');
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password
@@ -52,6 +58,7 @@ export const loginWithEmail = async (email, password) => {
 // Save User Profile Data
 export const saveUserProfile = async (uid, data) => {
     try {
+        if (!supabase) throw new Error('Database offline. Profile sync unavailable.');
         const { error } = await supabase
             .from('profiles')
             .upsert({ id: uid, ...data });
@@ -66,7 +73,9 @@ export const saveUserProfile = async (uid, data) => {
 // Logout
 export const logoutUser = async () => {
     try {
-        await supabase.auth.signOut();
+        if (supabase) {
+            await supabase.auth.signOut();
+        }
         localStorage.removeItem('boxing_guru_logged_in');
         window.location.href = 'index.html';
     } catch (error) {
@@ -75,4 +84,5 @@ export const logoutUser = async () => {
 };
 
 export { supabase as db }; // Exporting as db for backwards compatibility in UI files
+
 

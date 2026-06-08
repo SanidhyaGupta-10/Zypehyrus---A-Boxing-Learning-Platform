@@ -18,7 +18,9 @@ A professional-grade AI Boxing Coach that utilizes client-side computer vision (
 - **Colors**: Neon Lime (#E2FF3B) on Deep Matte Black (#0A0A0A).
 - **Aesthetics**: Glassmorphism, high-contrast typography, HUD-style overlays.
 
-## Current Module: Onboarding
-- **Status**: Initialized.
-- **Components**: 9-page flow (Welcome -> Specs -> Goals -> Commitment -> Calibration -> Launch).
-- **State**: Managed via `OnboardingContext`.
+## Current Modules & Features
+- **Onboarding Flow**: 9-page sequence (Welcome -> Specs -> Goals -> Commitment -> Calibration -> Launch) managed via `OnboardingContext`.
+- **Reflex Calibration**: Integrated reaction baseline testing (color/shape cognition) stored in user profiles.
+- **Dynamic Skill Builder**: Custom technique deployment system with Supabase DB storage and offline LocalStorage fallback.
+- **Fail-Safe Strategist**: Dual-route Gemini API access (secure Node.js proxy with client-side direct failover, 30s timeout, and rate-limiting detection).
+
