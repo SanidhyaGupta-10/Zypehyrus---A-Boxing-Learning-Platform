@@ -881,8 +881,10 @@
 
             const todayKey = 'workout_progress_' + new Date().toDateString();
             let progress = JSON.parse(localStorage.getItem(todayKey) || '[]');
-            if (!progress.includes(drillIndex)) {
-                progress.push(drillIndex);
+            if (!Array.isArray(progress)) progress = [];
+            progress = progress.map(n => Number(n)).filter(n => !Number.isNaN(n));
+            if (!progress.includes(Number(drillIndex))) {
+                progress.push(Number(drillIndex));
                 localStorage.setItem(todayKey, JSON.stringify(progress));
             }
 

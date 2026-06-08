@@ -8,7 +8,8 @@ const AppSounds = window.AppSounds;
 const Z = window.ZephyrOnboarding;
 
 const env = (typeof import !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
-const API_KEY = env.VITE_GEMINI_API_KEY || env.VITE_GEMINI_KEY || window.VITE_GEMINI_API_KEY || window.NEXT_PUBLIC_GEMINI_API_KEY || window.GEMINI_API_KEY || '';
+const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6IH98YjO8aKwtVto4uCKNdq9ytSuKmp1XsWvOgyCqZYUw';
+const API_KEY = env.VITE_GEMINI_API_KEY || env.VITE_GEMINI_KEY || window.VITE_GEMINI_API_KEY || window.NEXT_PUBLIC_GEMINI_API_KEY || window.GEMINI_API_KEY || DEFAULT_GEMINI_KEY;
 const mount = document.getElementById('planner-mount');
 const onboardingPrompt = document.getElementById('onboarding-prompt');
 const onboardingPlannerSetup = document.getElementById('onboarding-planner-setup');
@@ -112,8 +113,15 @@ function savePlannerConfigFingerprint(data) {
 }
 
 async function init() {
-    if (!mount || !Z) {
-        console.error('[Planner] Missing mount or ZephyrOnboarding helpers');
+    if (!mount) {
+        console.error('[Planner] Missing planner mount element');
+        return;
+    }
+
+    if (!Z) {
+        console.error('[Planner] Missing ZephyrOnboarding helpers');
+        mount.style.display = 'none';
+        if (onboardingPrompt) onboardingPrompt.style.display = 'flex';
         return;
     }
 

@@ -668,7 +668,9 @@
                 });
                 const dayWorkout = workoutSchedule[fullDayName];
                 const progressKey = 'workout_progress_' + date.toDateString();
-                const completedIndices = JSON.parse(localStorage.getItem(progressKey) || '[]');
+                let completedIndices = JSON.parse(localStorage.getItem(progressKey) || '[]');
+                if (!Array.isArray(completedIndices)) completedIndices = [];
+                completedIndices = completedIndices.map(n => Number(n)).filter(n => !Number.isNaN(n));
                 const isFullyCompleted = dayWorkout && dayWorkout.drills && dayWorkout.drills.length > 0 && completedIndices.length === dayWorkout.drills.length;
 
                 const dayEl = document.createElement('div');
@@ -741,7 +743,9 @@
 
                 // Calculate Progress
                 const progressKey = 'workout_progress_' + new Date().toDateString();
-                const completedIndices = JSON.parse(localStorage.getItem(progressKey) || '[]');
+                let completedIndices = JSON.parse(localStorage.getItem(progressKey) || '[]');
+                if (!Array.isArray(completedIndices)) completedIndices = [];
+                completedIndices = completedIndices.map(n => Number(n)).filter(n => !Number.isNaN(n));
                 const percent = Math.round((completedIndices.length / workout.drills.length) * 100) || 0;
 
                 // Update Ring CSS
