@@ -35,7 +35,7 @@
 - **Build Command**: `cd frontend && npm install && npm run build`
 - **Output Directory**: `frontend/dist`
 - **Config File**: [`vercel.json`](./vercel.json)
-- **What it serves**: All static `.html` pages + the React/Vite SPA (onboarding flow)
+- **What it serves**: All static `.html` pages + the React/Vite SPA (onboarding flow), including a goal-selection onboarding step with back navigation to prevent getting stuck.
 
 ### Google Cloud Run — Backend AI Proxy
 - **Purpose**: Secure proxy that holds the Gemini API key server-side (never exposed to the browser)

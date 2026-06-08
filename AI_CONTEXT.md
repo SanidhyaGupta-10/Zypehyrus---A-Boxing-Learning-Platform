@@ -21,6 +21,7 @@ A professional-grade AI Boxing Coach that utilizes client-side computer vision (
 
 ## Current Modules & Features
 - **Onboarding Flow**: 9-page sequence (Welcome -> Specs -> Goals -> Commitment -> Calibration -> Launch) managed via `OnboardingContext`.
+- **Goal selection step**: `goals.html` now includes explicit back navigation so users do not get stuck in the selection screen.
 - **Reflex Calibration**: Integrated reaction baseline testing (color/shape cognition) stored in user profiles.
 - **Dynamic Skill Builder**: Custom technique deployment system with Supabase DB storage and offline LocalStorage fallback.
 - **Fail-Safe Strategist**: Dual-route Gemini API access (secure Node.js proxy with client-side direct failover, 30s timeout, and rate-limiting detection).
