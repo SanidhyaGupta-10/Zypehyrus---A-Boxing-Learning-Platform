@@ -173,6 +173,12 @@
             };
 
             localStorage.setItem('boxing_onboarding_data', JSON.stringify(data));
+            
+            // Auto-generate plan before redirecting
+            localStorage.setItem('auto_generate_plan', 'true');
+            localStorage.removeItem('active_boxing_plan_v2');
+            localStorage.removeItem('last_plan_gen_date_v2');
+            
             window.location.href = 'planner.html';
         };
     </script>

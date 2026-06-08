@@ -7,7 +7,15 @@ const StreakManager = window.StreakManager;
 const AppSounds = window.AppSounds;
 const Z = window.ZephyrOnboarding;
 
-const env = (typeof import !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
+let env = {};
+try {
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+        env = import.meta.env;
+    }
+} catch (e) {
+    // Vite not available
+}
+
 const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6IH98YjO8aKwtVto4uCKNdq9ytSuKmp1XsWvOgyCqZYUw';
 const API_KEY = env.VITE_GEMINI_API_KEY || env.VITE_GEMINI_KEY || window.VITE_GEMINI_API_KEY || window.NEXT_PUBLIC_GEMINI_API_KEY || window.GEMINI_API_KEY || DEFAULT_GEMINI_KEY;
 const mount = document.getElementById('planner-mount');
@@ -157,6 +165,14 @@ async function init() {
     const configFp = plannerConfigFingerprint(data);
     const savedFp = localStorage.getItem('planner_config_fingerprint_v2');
     const configChanged = savedFp !== null && savedFp !== configFp;
+    const shouldAutoGenerate = localStorage.getItem('auto_generate_plan') === 'true';
+
+    // If auto-generate flag is set, always regenerate
+    if (shouldAutoGenerate) {
+        localStorage.removeItem('auto_generate_plan');
+        await generatePlan(data, today);
+        return;
+    }
 
     if (storedPlan && lastGen === today && !configChanged) {
         try {
