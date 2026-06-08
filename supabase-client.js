@@ -1,18 +1,26 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-// Try to get from import.meta.env (Vite), window globals, or fallback to null
-const getEnv = (key) => {
-    if (typeof import !== 'undefined' && import.meta && import.meta.env) {
-        return import.meta.env[key];
-    }
-    if (typeof window !== 'undefined') {
-        return window[key];
-    }
-    return undefined;
-};
+// Get environment variables from Vite or window globals
+let supabaseUrl = undefined;
+let supabaseAnonKey = undefined;
 
-const supabaseUrl = getEnv('VITE_SUPABASE_URL');
-const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('VITE_SUPABASE_KEY');
+// Try Vite env first
+try {
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+        supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_KEY;
+    }
+} catch (e) {
+    // Vite env not available, will use window globals
+}
+
+// Try window globals
+if (!supabaseUrl && typeof window !== 'undefined') {
+    supabaseUrl = window.VITE_SUPABASE_URL;
+}
+if (!supabaseAnonKey && typeof window !== 'undefined') {
+    supabaseAnonKey = window.VITE_SUPABASE_ANON_KEY || window.VITE_SUPABASE_KEY;
+}
 
 if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('[Supabase] Credentials missing. Supabase will be unavailable. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel environment.');

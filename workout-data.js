@@ -121,10 +121,16 @@ function generateDailyWorkout() {
     };
 }
 
-// Global accessor
-const workoutSchedule = {
-    [currentDayName]: generateDailyWorkout()
-};
+// Global accessor - generate for all 7 days
+const workoutSchedule = {};
+for (let i = 0; i < 7; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() + i);
+    const dayName = dayNames[date.getDay()];
+    if (!workoutSchedule[dayName]) {
+        workoutSchedule[dayName] = generateDailyWorkout();
+    }
+}
 
 function getDailyWorkout() {
     // 1. Check for basic workout

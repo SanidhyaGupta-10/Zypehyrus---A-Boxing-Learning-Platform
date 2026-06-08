@@ -26,6 +26,15 @@
         document.addEventListener('touchstart', enterFullscreen, { once: true });
         document.addEventListener('click', enterFullscreen, { once: true });
     </script>
+    <script>
+        // Suppress manifest 401 errors (expected behavior in some CDN setups)
+        window.addEventListener('error', (event) => {
+            if (event.message && event.message.includes('manifest.json') && event.message.includes('401')) {
+                event.preventDefault();
+                console.warn('[PWA] Manifest fetch failed with 401, but app will still work.');
+            }
+        }, true);
+    </script>
     <script src="streak-manager.js"></script>
     <script src="sound-effects.js"></script>
     <script src="notification-manager.js"></script>

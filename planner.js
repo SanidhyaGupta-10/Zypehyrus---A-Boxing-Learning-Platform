@@ -181,8 +181,22 @@ async function init() {
 async function generatePlan(userData, todayDateStr) {
     showPlannerLoading('Gemini is building your weekly protocol from your profile and session time…');
 
+    // Set a hard timeout - if nothing happens in 15s, show error
+    const timeoutId = setTimeout(() => {
+        if (mount && mount.innerHTML.includes('GEMINI')) {
+            mount.innerHTML = `
+                <div style="padding: 80px 24px; text-align: center; color: #ff6b6b;">
+                    <h2 style="font-weight: 900; text-transform: uppercase; margin-bottom: 10px;">TIMEOUT</h2>
+                    <p style="color: var(--zinc-500); font-size: 0.85rem; margin-bottom: 16px;">Backend took too long to respond. Check connection and try again.</p>
+                    <button onclick="location.reload()" style="background: var(--primary); color: #000; border: none; border-radius: 25px; padding: 12px 24px; font-weight: 900; cursor: pointer; text-transform: uppercase;">RETRY</button>
+                </div>
+            `;
+        }
+    }, 15000);
+
     try {
         const plan = await fetchPlanFromGemini(userData);
+        clearTimeout(timeoutId);
 
         if (!plan) {
             throw new Error('No plan was generated. Please try again.');
@@ -198,6 +212,7 @@ async function generatePlan(userData, todayDateStr) {
         AppSounds?.play?.('success');
         renderPlan(plan);
     } catch (error) {
+        clearTimeout(timeoutId);
         console.error('[Planner] Gemini generation failed:', error);
         AppSounds?.play?.('error');
         
@@ -213,8 +228,8 @@ async function generatePlan(userData, todayDateStr) {
                     <i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; margin-bottom: 20px; display: block;"></i>
                     <h2 style="font-weight: 900; text-transform: uppercase; margin-bottom: 15px;">GEMINI OFFLINE</h2>
                     <p style="font-size: 0.8rem; color: var(--zinc-500); margin-bottom: 16px; line-height: 1.5;">${errorMessage}</p>
-                    <p style="font-size: 0.65rem; color: #666; margin-bottom: 24px;">Make sure backend is running with <code style="background:#222;padding:2px 6px;border-radius:3px;">GEMINI_API_KEY</code> set in <code style="background:#222;padding:2px 6px;border-radius:3px;">.env</code></p>
-                    <button onclick="location.reload()" style="background: var(--neon); color: #000; border: none; font-weight: 950; border-radius: 25px; cursor: pointer; padding: 12px 24px; font-size: 0.8rem; text-transform: uppercase;">RETRY</button>
+                    <p style="font-size: 0.65rem; color: #666; margin-bottom: 24px;">Ensure backend is running with <code style="background:#222;padding:2px 6px;border-radius:3px;">GEMINI_API_KEY</code> in <code style="background:#222;padding:2px 6px;border-radius:3px;">.env</code></p>
+                    <button onclick="location.reload()" style="background: var(--primary); color: #000; border: none; font-weight: 950; border-radius: 25px; cursor: pointer; padding: 12px 24px; font-size: 0.8rem; text-transform: uppercase;">RETRY</button>
                 </div>
             </div>
         `;
