@@ -175,6 +175,13 @@
             box-shadow: 0 10px 40px rgba(var(--primary-rgb), 0.3);
             cursor: pointer;
         }
+
+        .deploy-btn.secondary {
+            background: transparent;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: none;
+        }
     </style>
 </head>
 
@@ -216,10 +223,12 @@
             </main>
 
             <footer style="margin-top: 30px;">
-                <button class="deploy-btn" id="next-btn">DEPLOY STRATEGY <i
-                        class="fa-solid fa-arrow-right"></i></button>
-                <a href="index.html"
-                    style="display: block; margin-top: 15px; color: var(--zinc-500); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; text-decoration: none; text-align: center;">BACK</a>
+                <div style="display: grid; gap: 12px;">
+                    <button class="deploy-btn secondary" id="back-btn" type="button">
+                        <i class="fa-solid fa-arrow-left"></i> BACK
+                    </button>
+                    <button class="deploy-btn" id="next-btn">DEPLOY STRATEGY <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
             </footer>
         </div>
     </div>
@@ -236,6 +245,10 @@
             data.primary_goal = selectedGoal;
             localStorage.setItem('boxing_onboarding_data', JSON.stringify(data));
             window.location.href = 'experience.html';
+        };
+
+        document.getElementById('back-btn').onclick = function () {
+            window.history.back();
         };
     </script>
 </body>

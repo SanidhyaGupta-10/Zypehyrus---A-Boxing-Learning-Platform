@@ -4,6 +4,7 @@
 A professional-grade AI Boxing Coach that utilizes client-side computer vision (MediaPipe) to track athletic performance and a secure Node.js proxy to provide AI strategist insights (Gemini).
 
 ## Modern Architecture (Monorepo)
+- **Local repo path**: `E:\boxing app\app project`
 - **/frontend**: React 18, TypeScript, Vite. Handles all UI and real-time vision processing.
 - **/backend**: Express, TypeScript. Secure proxy for Gemini API, deployed on Google Cloud Run.
 - **/archive/v1**: Legacy vanilla HTML/JS version of the application.

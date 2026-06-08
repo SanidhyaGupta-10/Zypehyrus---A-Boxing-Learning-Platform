@@ -513,11 +513,33 @@
         let workoutSession = null;
         let currentDrill = null;
         let timerInterval = null;
+        let prepInterval = null;
+        let restInterval = null;
         let statInterval = null;
         let timeLeft = 0;
         let totalTime = 0;
         let isPaused = false;
         let isRunning = false;
+
+        function clearActiveCountdowns() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            if (prepInterval) {
+                clearInterval(prepInterval);
+                prepInterval = null;
+            }
+            if (restInterval) {
+                clearInterval(restInterval);
+                restInterval = null;
+            }
+            if (statInterval) {
+                clearInterval(statInterval);
+                statInterval = null;
+            }
+            isRunning = false;
+        }
 
         // ── Voice Command Engine ─────────────────────────────────────
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -694,6 +716,9 @@
         }
 
         function startSequence() {
+            clearActiveCountdowns();
+            isPaused = false;
+
             // UI Transition — Show Controls Immediately
             document.getElementById('start-btn').style.display = 'none';
             document.getElementById('pause-btn').style.display = 'flex';
@@ -711,13 +736,14 @@
             updateTimerDisplay(prepTime);
             setProgress(100);
 
-            const prepInterval = setInterval(() => {
+            prepInterval = setInterval(() => {
                 if (isPaused) return; // Allow pausing during prep too!
                 prepTime--;
                 updateTimerDisplay(prepTime);
 
                 if (prepTime <= 0) {
                     clearInterval(prepInterval);
+                    prepInterval = null;
                     beginSession();
                 }
             }, 1000);
@@ -771,6 +797,7 @@
 
                     if (timeLeft <= 0) {
                         clearInterval(timerInterval);
+                        timerInterval = null;
                         completeDrill();
                     }
                 }
@@ -882,6 +909,8 @@
         }
 
         function runRestCountdown(seconds, nextUrl) {
+            clearActiveCountdowns();
+            isPaused = false;
             document.getElementById('start-btn').style.display = 'none';
             document.getElementById('pause-btn').style.display = 'none';
             document.getElementById('action-btn').style.display = 'none';
@@ -891,12 +920,13 @@
             updateTimerDisplay(left);
             setProgress(100);
 
-            const restInterval = setInterval(() => {
+            restInterval = setInterval(() => {
                 if (isPaused) return;
                 left--;
                 updateTimerDisplay(left);
                 if (left <= 0) {
                     clearInterval(restInterval);
+                    restInterval = null;
                     window.location.href = nextUrl;
                 }
             }, 1000);
@@ -904,6 +934,7 @@
 
         function finishSession(msg) {
             if (msg || confirm('Exit session?')) {
+                clearActiveCountdowns();
                 localStorage.removeItem('tactical_session');
                 if (isProtocol) {
                     window.location.href = `protocol-session.html?day=${dayIdx}&p=${pIdx}`;
