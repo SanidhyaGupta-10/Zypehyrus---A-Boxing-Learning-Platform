@@ -1,255 +1,182 @@
-# 🥊 AI Boxing Guru — Full Tech Stack & Infrastructure
+# 🥊 ZEPHYR AI Boxing App — Tech Stack
 
-> Living reference document. Update this file whenever a new tool, service, or dependency is added.
+> Accurate as of cleanup on 2026-06-21. Only working, deployed technologies listed.
 
 ---
 
-## 🏗️ Architecture Overview
-
-> Repo local path: `E:\boxing app\app project`
+## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                   USER (Browser / PWA)               │
-└───────────────────┬─────────────────────────────────┘
-                    │ HTTPS
-        ┌───────────▼────────────┐
-        │   Vercel (Frontend)    │  ← Static HTML/JS + React SPA
-        │   boxing-frontend repo │
-        └───────────┬────────────────────┘
-                    │ REST / Realtime
-        ┌───────────▼────────────┐      ┌──────────────────────┐
-        │   Supabase (BaaS)      │      │  Google Cloud Run    │
-        │   Auth + PostgreSQL    │      │  (Gemini AI Proxy)   │
-        │   + Realtime + Storage │      │  Node.js server.js   │
-        └────────────────────────┘      └──────────────────────┘
+boxing-frontend/
+├── backend/                    # Express + TypeScript API server
+│   ├── src/server.ts           # Gemini AI proxy (Cloud Run)
+│   ├── Dockerfile
+│   ├── package.json
+│   └── tsconfig.json
+├── frontend/                   # Vite + React + Legacy HTML hybrid
+│   ├── src/                    # React 18 SPA (onboarding)
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   ├── index.css
+│   │   ├── context/            # AuthContext, OnboardingContext
+│   │   ├── lib/                # supabaseClient.ts, api.ts, navigation.ts
+│   │   └── pages/              # auth/, onboarding/, planner/
+│   ├── legacy/                 # Vanilla HTML/JS/CSS app pages
+│   │   ├── dashboard.html      # Home / Today's Mission
+│   │   ├── training.html       # Daily Grind (workout list)
+│   │   ├── session-timer.html  # Active drill timer
+│   │   ├── guru.html           # Combat Guru (technique library)
+│   │   ├── planner.html        # AI Weekly Planner
+│   │   ├── vision-analyser.html # AI live form analyser
+│   │   ├── reflex-enhancer.html # Reflex training games
+│   │   ├── analytics.html      # Performance analytics
+│   │   ├── leaderboard.html    # Global streak leaderboard
+│   │   ├── settings.html       # User profile & settings
+│   │   ├── style.css           # Global design system CSS
+│   │   └── ... (30+ HTML pages, 15+ JS modules)
+│   ├── index.html              # React SPA entry point
+│   ├── vite.config.ts          # Vite build + legacy file plugin
+│   ├── tailwind.config.js
+│   ├── package.json
+│   └── tsconfig.json
+├── vercel.json                 # Vercel deployment config
+└── .env.example                # Environment variable reference
 ```
 
 ---
 
-## 🌐 Hosting & Deployment
+## ⚛️ Frontend — React SPA (Onboarding + Auth)
 
-### Vercel — Frontend Hosting
-- **URL**: Linked to `https://github.com/Subham231/boxing-frontend`
-- **Branch**: `main` (auto-deploys on every push)
-- **Build Command**: `cd frontend && npm install && npm run build`
-- **Output Directory**: `frontend/dist`
-- **Config File**: [`vercel.json`](./vercel.json)
-- **What it serves**: All static `.html` pages + the React/Vite SPA (onboarding flow), including a goal-selection onboarding step with back navigation to prevent getting stuck.
+| Library | Version | Purpose |
+|---|---|---|
+| **React** | 18.3.1 | Component framework |
+| **React DOM** | 18.3.1 | DOM rendering |
+| **TypeScript** | 5.4.5 | Type safety |
+| **Vite** | 5.2.11 | Build tool & dev server |
+| **@vitejs/plugin-react** | 4.2.1 | React fast-refresh for Vite |
+| **Framer Motion** | 11.2.4 | Page transition animations |
+| **Lucide React** | 0.379.0 | Icon library |
+| **Tailwind CSS** | 3.4.19 | Utility CSS for React pages |
+| **PostCSS** | 8.5.15 | CSS processing pipeline |
+| **Autoprefixer** | 10.5.0 | Browser compatibility prefixes |
+| **@supabase/supabase-js** | 2.43.2 | Supabase client (auth + DB) |
 
-### Google Cloud Run — Backend AI Proxy
-- **Purpose**: Secure proxy that holds the Gemini API key server-side (never exposed to the browser)
-- **Runtime**: Node.js
-- **Entry Point**: [`server.js`](./server.js) (also copied to `frontend/dist/server.js`)
-- **Key Endpoints**:
-  - `POST /api/gemini` — Forwards prompts to Google Gemini API
-  - `GET /health` — Health check endpoint
-- **Config**: [`cloudbuild.yaml`](./cloudbuild.yaml)
+### React Pages
+- `pages/auth/Login.tsx` — Phone OTP + guest login
+- `pages/onboarding/*.tsx` — 16-step onboarding flow (Welcome → Calibration → Launch)
+- `pages/planner/PlannerOnboarding.tsx` — AI planner setup
+- `context/AuthContext.tsx` — Supabase auth state
+- `context/OnboardingContext.tsx` — Onboarding step state
 
 ---
 
-## 🗄️ Database & Auth
+## 📄 Frontend — Legacy HTML/JS/CSS (Main App Pages)
 
-### Supabase
-- **Role**: Backend-as-a-Service (BaaS)
-- **Services used**:
-  | Service | Purpose |
-  |---------|---------|
-  | **PostgreSQL** | Primary database (profiles, leaderboard, techniques) |
-  | **Auth** | Phone OTP login (via SMS), session management |
-  | **Realtime** | Live leaderboard updates |
-  | **Storage** | User avatar/media (planned) |
-- **Client files**:
-  - [`supabase-client.js`](./supabase-client.js) — Legacy HTML pages ESM client
-  - [`frontend/src/lib/supabaseClient.ts`](./frontend/src/lib/supabaseClient.ts) — React/TS singleton
-- **Auth flow**: Phone number → OTP SMS → Session token → `localStorage` flag
-- **Tables**:
-  | Table | Contents |
-  |-------|---------|
-  | `profiles` | User onboarding data, ring name, metrics |
-  | `leaderboard_streaks` | Streak scores for global leaderboard |
-  | `techniques` | Custom user-added combat techniques |
-- **Environment Variables** (set in Vercel dashboard):
-  - `VITE_SUPABASE_URL`
-  - `VITE_SUPABASE_ANON_KEY`
+| Technology | Source |
+|---|---|
+| **HTML5 + Vanilla JS + CSS** | Hand-written, no framework |
+| **Font Awesome** | 6.4.0 (CDN) |
+| **MediaPipe Pose** | Client-side body tracking (CDN) |
+| **Supabase JS** | CDN import in HTML pages |
+
+### Key JS Modules (in `frontend/legacy/`)
+| File | Purpose |
+|---|---|
+| `workout-data.js` | Daily workout generation |
+| `streak-manager.js` | Streak tracking + Supabase sync |
+| `techniques-data.js` | Static technique catalog |
+| `guru-media.js` | Technique normalization + SVG placeholders |
+| `planner.js` | AI planner logic with proxy + direct fallback |
+| `planner-gemini.js` | Client-side Gemini API caller |
+| `planner-plan-builder.js` | Plan builder UI logic |
+| `leaderboard-manager.js` | Leaderboard fetch & render |
+| `auth.js` | Supabase auth wrapper |
+| `user-profile.js` | Profile avatar loading |
+| `sound-effects.js` | UI sound engine |
+| `notification-manager.js` | Push notification scheduling |
+| `vision-gemini-init.js` | Vision analyser Gemini init |
+| `protocol-session-utils.js` | Planner protocol session state |
+| `onboarding-utils.js` | Onboarding helpers |
+
+---
+
+## 🖥️ Backend — Node.js API Server
+
+| Library | Version | Purpose |
+|---|---|---|
+| **Express** | 4.19.2 | HTTP server + REST API |
+| **TypeScript** | 5.4.5 | Type safety |
+| **@google/generative-ai** | 0.17.2 | Gemini AI SDK |
+| **cors** | 2.8.5 | CORS middleware |
+| **helmet** | 7.1.0 | Security headers |
+| **dotenv** | 16.4.5 | Environment variables |
+| **tsx** | 4.7.2 | TypeScript execution (dev) |
+
+### API Endpoints (`backend/src/server.ts`)
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/analyze-session` | Session metrics → Gemini analysis |
+| `POST` | `/api/generate-plan` | User profile → 7-day training roadmap |
+| `GET` | `/health` | Health check |
+
+---
+
+## 🗄️ Database & Auth — Supabase
+
+| Service | Purpose |
+|---|---|
+| **PostgreSQL** | Primary database (profiles, leaderboard, techniques) |
+| **Auth** | Phone OTP login (SMS), session management |
+| **Realtime** | Live leaderboard updates |
+
+### Tables
+| Table | Contents |
+|---|---|
+| `profiles` | User onboarding data, ring name, metrics |
+| `leaderboard_streaks` | Streak scores for global leaderboard |
+| `techniques` | Custom user-added combat techniques |
 
 ---
 
 ## 🤖 AI & Machine Learning
 
-### Google Gemini API
-- **Model**: Gemini 1.5 Flash (via backend proxy)
-- **Used in**:
-  - **AI Planner** (`planner.js`) — Generates personalised weekly training plans
-  - **Combat Guru** (`guru.html`) — Technique coaching & advice
-- **Files**:
-  - [`planner-gemini.js`](./planner-gemini.js) — Client-side Gemini caller
-  - [`planner.js`](./planner.js) — Plan builder logic with proxy + direct fallback
-- **Fallback**: If the backend proxy times out (>30s) or returns 429, the client attempts a direct API call via `window.PlannerGemini`
-
-### MediaPipe Pose
-- **Purpose**: Real-time boxing form analysis via webcam
-- **Used in**: [`vision-analyser.html`](./vision-analyser.html)
-- **Mode**: Fully client-side (no server needed for inference)
-- **Initialiser**: [`vision-gemini-init.js`](./vision-gemini-init.js)
+| Technology | Purpose | Where |
+|---|---|---|
+| **Google Gemini 2.5 Flash** | Training plan generation, coaching | Backend proxy |
+| **MediaPipe Pose** | Real-time boxing form tracking | Client-side (browser) |
 
 ---
 
-## ⚛️ Frontend Framework (React SPA — Onboarding)
+## 🚀 Hosting & Deployment
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| **React** | 18.3.1 | Component framework |
-| **Vite** | 5.2.11 | Build tool & dev server |
-| **TypeScript** | 5.4.5 | Type safety |
-| **Framer Motion** | 11.2.4 | Page transition animations |
-| **Lucide React** | 0.379.0 | Icon library |
-| **Tailwind CSS** | 3.4.19 | Utility CSS (onboarding pages only) |
-| **@supabase/supabase-js** | 2.43.2 | Supabase JS client |
+| Service | What | Config |
+|---|---|---|
+| **Vercel** | Frontend static hosting | `vercel.json` |
+| **Google Cloud Run** | Backend API server | `backend/Dockerfile` |
+| **Docker** | Backend containerization | `backend/Dockerfile` |
 
-- **Entry point**: `frontend/src/main.tsx`
-- **Config**: [`frontend/vite.config.ts`](./frontend/vite.config.ts)
-- **Key vite plugin**: `legacyAppPlugin` — copies all root `.html`/`.js`/`.css` files into `frontend/dist` on every build
+### Vercel Build
+- **Build Command**: `cd frontend && npm install && npm run build`
+- **Output Directory**: `frontend/dist`
 
 ---
 
-## 📄 Legacy HTML App (Main App Pages)
+## 🔑 Environment Variables
 
-The core app (post-onboarding) is built with **plain HTML + Vanilla JS + CSS**:
-
-| File | Page |
-|------|------|
-| `dashboard.html` | Home / Today's Mission |
-| `training.html` | Daily Grind (workout list) |
-| `session-timer.html` | Active drill timer |
-| `guru.html` | Combat Guru (technique library) |
-| `technical-detail.html` | Technique deep-dive |
-| `planner.html` | AI Weekly Planner |
-| `reflex-enhancer.html` | Reflex training games |
-| `vision-analyser.html` | AI live form analyser |
-| `analytics.html` | Performance analytics |
-| `leaderboard.html` | Global streak leaderboard |
-| `settings.html` | User profile & settings |
-
-### Shared JS Modules (loaded via `<script src="">`)
-| File | Purpose |
-|------|---------|
-| `workout-data.js` | `getDailyWorkout()` — generates personalised daily drills |
-| `streak-manager.js` | Streak tracking, badge updates, Supabase sync |
-| `techniques-data.js` | Static technique catalog (stances/punches/kicks/defense) |
-| `guru-media.js` | Technique normalization, SVG placeholder images |
-| `sound-effects.js` | UI click/success sound engine |
-| `notification-manager.js` | Push notification scheduling |
-| `user-profile.js` | Profile avatar loading |
-| `leaderboard-manager.js` | Leaderboard fetch & render helpers |
-| `auth.js` | Supabase auth wrapper (ES module, used via `import`) |
-| `protocol-session-utils.js` | Planner protocol session state |
-
----
-
-## 💾 State & Storage
-
-| Storage | What's stored |
-|---------|--------------|
-| `localStorage` | Onboarding data, workout progress, streak, settings, custom techniques, reflex baseline |
-| `Supabase DB` | Profiles, leaderboard scores, cloud-synced techniques |
-| URL params | Drill index, session source, planner day/protocol index |
-
-### Key localStorage Keys
-| Key | Purpose |
-|-----|---------|
-| `boxing_onboarding_data` | Full onboarding JSON (name, metrics, goals, etc.) |
-| `boxing_guru_logged_in` | Auth session flag |
-| `boxing_streak_data` | `{ currentStreak, lastCompletedDate }` |
-| `workout_progress_[DATE]` | Array of completed drill indices for a given day |
-| `deployed_planner_drills_[DATE]` | AI-generated planner drills injected into daily grind |
-| `custom_techniques` | User-added techniques (localStorage fallback) |
-| `reflex_assessment_done` | Whether calibration was completed |
-| `reflex_baseline_avg` | Average reaction time in ms |
-| `active_boxing_plan_v2` | Full AI-generated weekly plan |
-| `app_settings` | `{ stealth: bool }` |
+| Variable | Where Set | Used By |
+|---|---|---|
+| `VITE_SUPABASE_URL` | Vercel / `.env.local` | Frontend Supabase client |
+| `VITE_SUPABASE_ANON_KEY` | Vercel / `.env.local` | Frontend Supabase client |
+| `GEMINI_API_KEY` | Cloud Run / `.env` | Backend Gemini proxy |
+| `PORT` | Cloud Run | Backend server |
 
 ---
 
 ## 🎨 Design System
 
 - **Theme**: "Cyber-Athletic" dark mode
-- **Primary Color**: `#E2FF3B` (Neon Lime) — `--primary`
+- **Primary**: `#E2FF3B` (Neon Lime)
 - **Background**: `#0A0A0A` (Deep Matte Black)
-- **Fonts**: System UI / inherited (no external font CDN)
-- **Icons**: Font Awesome 6.4.0 (CDN)
+- **Icons**: Font Awesome 6.4.0 (CDN) + Lucide React (onboarding)
 - **Effects**: Glassmorphism, conic-gradient rings, HUD overlays, glow shadows
-- **Main CSS**: [`style.css`](./style.css)
-
----
-
-## 📱 PWA & Mobile
-
-- **Manifest**: `/manifest.json`
-- **iOS support**: `apple-mobile-web-app-capable` meta tags
-- **Fullscreen**: Auto-enters fullscreen on first touch/click
-- **Capacitor config**: `capacitor.config.json` (for future native app wrapping)
-
----
-
-## 🔑 Environment Variables Reference
-
-| Variable | Where set | Used by |
-|----------|-----------|---------|
-| `VITE_SUPABASE_URL` | Vercel dashboard | `supabase-client.js`, `supabaseClient.ts` |
-| `VITE_SUPABASE_ANON_KEY` | Vercel dashboard | same |
-| `GEMINI_API_KEY` | Google Cloud secret / env | `server.js` backend proxy |
-| `PORT` | Google Cloud Run | `server.js` |
-
----
-
-## 🔁 CI/CD Flow
-
-```
-Developer pushes to main
-        │
-        ▼
-GitHub (boxing-frontend)
-        │
-        ├──▶ Vercel auto-deploy
-        │       cd frontend && npm install && npm run build
-        │       → copies all root HTML/JS to frontend/dist
-        │       → deploys frontend/dist as static site
-        │
-        └──▶ Google Cloud Build (manual trigger or cloudbuild.yaml)
-                → builds Docker image with server.js
-                → deploys to Cloud Run
-```
-
----
-
-## 📦 Repository Structure
-
-```
-boxing-frontend/
-├── frontend/               # Vite/React SPA (onboarding)
-│   ├── src/
-│   │   ├── pages/          # React page components
-│   │   ├── context/        # AuthContext, OnboardingContext
-│   │   ├── lib/            # supabaseClient.ts, api.ts
-│   │   └── main.tsx
-│   ├── dist/               # Build output (deployed to Vercel)
-│   ├── vite.config.ts
-│   └── package.json
-├── dashboard.html          # Main app pages (legacy HTML)
-├── guru.html
-├── training.html
-├── ... (all other .html pages)
-├── workout-data.js         # Shared JS modules
-├── techniques-data.js
-├── guru-media.js
-├── streak-manager.js
-├── auth.js                 # Supabase auth wrapper
-├── supabase-client.js      # Supabase ESM client
-├── server.js               # Google Cloud Run backend
-├── style.css               # Global design system
-├── vercel.json             # Vercel build config
-├── cloudbuild.yaml         # Google Cloud Build config
-├── AI_CONTEXT.md           # AI agent project state
-└── TECH_STACK.md           # ← This file
-```
+- **Main CSS**: `frontend/legacy/style.css`

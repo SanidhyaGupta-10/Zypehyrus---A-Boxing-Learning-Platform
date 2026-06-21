@@ -5,7 +5,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, '..');
+const legacyDir = path.resolve(__dirname, 'legacy');
 
 const LEGACY_FILE_EXTENSIONS = new Set([
     '.html',
@@ -41,25 +41,12 @@ const MIME: Record<string, string> = {
     '.ttf': 'font/ttf',
 };
 
+/** Copy all legacy HTML/JS/CSS files into the Vite build output. */
 function copyLegacyFiles(outDir: string) {
-    const ignoreFiles = new Set([
-        'package.json',
-        'package-lock.json',
-        'yarn.lock',
-        'pnpm-lock.yaml',
-        'frontend',
-        'node_modules',
-        'vercel.json',
-        'cloudbuild.yaml',
-        'vite.config.ts',
-        'tsconfig.json',
-        'README.md',
-    ]);
+    if (!fs.existsSync(legacyDir)) return;
 
-    for (const name of fs.readdirSync(repoRoot)) {
-        if (ignoreFiles.has(name)) continue;
-
-        const src = path.join(repoRoot, name);
+    for (const name of fs.readdirSync(legacyDir)) {
+        const src = path.join(legacyDir, name);
         if (!fs.statSync(src).isFile()) continue;
 
         const ext = path.extname(name).toLowerCase();
@@ -67,19 +54,9 @@ function copyLegacyFiles(outDir: string) {
 
         fs.copyFileSync(src, path.join(outDir, name));
     }
-
-    const publicDir = path.join(repoRoot, 'public');
-    if (fs.existsSync(publicDir)) {
-        for (const name of fs.readdirSync(publicDir)) {
-            const src = path.join(publicDir, name);
-            if (fs.statSync(src).isFile()) {
-                fs.copyFileSync(src, path.join(outDir, name));
-            }
-        }
-    }
 }
 
-/** Serve dashboard.html and legacy assets from repo root during `npm run dev`. */
+/** Serve legacy HTML/JS/CSS from frontend/legacy/ during `npm run dev`. */
 function legacyAppPlugin(): Plugin {
     return {
         name: 'legacy-app',
@@ -97,7 +74,7 @@ function legacyAppPlugin(): Plugin {
                 }
 
                 if (/\.(html|css|js|mjs|json|ico|png|jpg|jpeg|svg|webp|woff2?)$/i.test(pathname)) {
-                    const filePath = path.join(repoRoot, pathname.replace(/^\//, ''));
+                    const filePath = path.join(legacyDir, pathname.replace(/^\//, ''));
                     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
                         const ext = path.extname(filePath).toLowerCase();
                         res.setHeader('Content-Type', MIME[ext] ?? 'application/octet-stream');
@@ -124,7 +101,6 @@ export default defineConfig({
     },
     server: {
         port: 3000,
-        fs: { allow: ['..'] },
     },
     envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
 });

@@ -1,28 +1,31 @@
-# ZEPHYR AI Boxing App - Context
+# ZEPHYR AI Boxing App — Context
 
 ## Project Mission
-A professional-grade AI Boxing Coach that utilizes client-side computer vision (MediaPipe) to track athletic performance and a secure Node.js proxy to provide AI strategist insights (Gemini).
+A professional-grade AI Boxing Coach that uses client-side computer vision (MediaPipe) for athletic performance tracking and a secure Node.js proxy for AI strategist insights (Gemini).
 
-## Modern Architecture (Monorepo)
-- **Local repo path**: `E:\boxing app\app project`
-- **/frontend**: React 18, TypeScript, Vite. Handles all UI and real-time vision processing.
-- **/backend**: Express, TypeScript. Secure proxy for Gemini API, deployed on Google Cloud Run.
-- **/archive/v1**: Legacy vanilla HTML/JS version of the application.
+## Architecture (Monorepo — 2 directories)
+
+```
+boxing-frontend/
+├── backend/          # Express + TypeScript API server (Google Cloud Run)
+│   └── src/server.ts # Gemini AI proxy endpoints
+├── frontend/         # Vite + React + Legacy HTML hybrid
+│   ├── src/          # React 18 SPA (Login + Onboarding flow)
+│   ├── legacy/       # Vanilla HTML/JS/CSS pages (main app post-onboarding)
+│   ├── index.html    # React entry point
+│   └── vite.config.ts
+├── vercel.json       # Vercel deployment config
+└── .env.example      # Environment variable reference
+```
 
 ## Core Stack
-- **Frontend**: React + Framer Motion (Animations) + Supabase JS.
-- **Database/Auth**: Supabase (PostgreSQL).
-- **Inference**: MediaPipe Pose (Client-side).
-- **LLM**: Google Gemini (Via Backend Proxy).
+- **Frontend SPA**: React 18 + TypeScript + Vite + Framer Motion + Tailwind CSS
+- **Frontend App Pages**: Vanilla HTML + JS + CSS (in `frontend/legacy/`)
+- **Backend**: Express + TypeScript (secure Gemini API proxy)
+- **Database/Auth**: Supabase (PostgreSQL + Phone OTP)
+- **AI/ML**: Google Gemini (via backend proxy) + MediaPipe Pose (client-side)
+- **Hosting**: Vercel (frontend) + Google Cloud Run (backend)
 
 ## Design System: "Cyber-Athletic"
-- **Colors**: Neon Lime (#E2FF3B) on Deep Matte Black (#0A0A0A).
-- **Aesthetics**: Glassmorphism, high-contrast typography, HUD-style overlays.
-
-## Current Modules & Features
-- **Onboarding Flow**: 9-page sequence (Welcome -> Specs -> Goals -> Commitment -> Calibration -> Launch) managed via `OnboardingContext`.
-- **Goal selection step**: `goals.html` now includes explicit back navigation so users do not get stuck in the selection screen.
-- **Reflex Calibration**: Integrated reaction baseline testing (color/shape cognition) stored in user profiles.
-- **Dynamic Skill Builder**: Custom technique deployment system with Supabase DB storage and offline LocalStorage fallback.
-- **Fail-Safe Strategist**: Dual-route Gemini API access (secure Node.js proxy with client-side direct failover, 30s timeout, and rate-limiting detection).
-
+- **Colors**: Neon Lime (#E2FF3B) on Deep Matte Black (#0A0A0A)
+- **Aesthetics**: Glassmorphism, high-contrast typography, HUD-style overlays
