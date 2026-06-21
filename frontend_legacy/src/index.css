@@ -1,0 +1,687 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --primary: #E2FF3B;
+    --primary-rgb: 226, 255, 59;
+    --bg-dark: #0A0A0A;
+    --surface: #121212;
+    --text: #FFFFFF;
+    --text-muted: #888888;
+    --accent: #00F0FF;
+    --glass: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+@font-face {
+    font-family: 'Space Grotesk';
+    src: url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text);
+    font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+}
+
+#root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.text-glow {
+    text-shadow: 0 0 15px rgba(var(--primary-rgb), 0.4);
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: #000;
+    border: none;
+    padding: 1rem 2.5rem;
+    font-weight: 700;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+}
+
+.btn-primary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.3);
+}
+
+.glass-card {
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 1.5rem;
+}
+
+/* ????????? Spin keyframe ????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????? */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+/* ????????? Login page ????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????? */
+.login-root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 1rem 3rem;
+    background: var(--bg-dark);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-bg-glow {
+    position: absolute;
+    top: -180px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(226, 255, 59, 0.07) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 28px;
+    padding: 2rem 1.75rem 2.25rem;
+    backdrop-filter: blur(20px);
+    position: relative;
+    z-index: 1;
+}
+
+/* Header */
+.login-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 2rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.login-brand-tag {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: var(--primary);
+    line-height: 1;
+}
+
+.login-brand-sub {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-top: 3px;
+    text-transform: uppercase;
+}
+
+/* Step label */
+.login-step-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--primary);
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+}
+
+/* Title */
+.login-title {
+    font-size: clamp(2rem, 7vw, 2.6rem);
+    font-weight: 900;
+    line-height: 1.1;
+    color: #fff;
+    margin-bottom: 0.75rem;
+}
+
+.login-title-accent {
+    color: var(--primary);
+    font-style: italic;
+}
+
+/* Description */
+.login-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 1.75rem;
+}
+
+/* Phone input */
+.login-input-group {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 0 1rem;
+    gap: 10px;
+    transition: border-color 0.2s;
+    margin-bottom: 0.6rem;
+}
+
+.login-input-group:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(226, 255, 59, 0.08);
+}
+
+.login-input-icon {
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.login-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 1.05rem;
+    font-family: inherit;
+    padding: 1rem 0;
+    letter-spacing: 0.5px;
+}
+
+.login-input::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+.login-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    margin-bottom: 1.5rem;
+}
+
+/* OTP grid */
+.login-otp-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.login-otp-icon {
+    color: var(--text-muted);
+}
+
+.otp-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    width: 100%;
+}
+
+.otp-box {
+    aspect-ratio: 1;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1.5px solid var(--glass-border);
+    border-radius: 12px;
+    color: var(--primary);
+    font-size: 1.4rem;
+    font-weight: 800;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: 'Space Grotesk', monospace;
+    caret-color: var(--primary);
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.otp-box:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(226, 255, 59, 0.12);
+}
+
+.otp-box:not(:placeholder-shown) {
+    border-color: rgba(226, 255, 59, 0.4);
+}
+
+.login-phone-display {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+/* Buttons */
+.login-btn-primary {
+    width: 100%;
+    height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--primary);
+    color: #000;
+    border: none;
+    border-radius: 100px;
+    font-size: 0.875rem;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.2s;
+    font-family: inherit;
+    margin-bottom: 0.75rem;
+}
+
+.login-btn-primary:hover:not(:disabled) {
+    transform: scale(1.03);
+    box-shadow: 0 0 30px rgba(226, 255, 59, 0.3);
+}
+
+.login-btn-primary:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.login-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    margin-bottom: 1.25rem;
+    padding: 0;
+    letter-spacing: 0.5px;
+    transition: color 0.2s;
+}
+
+.login-back-btn:hover {
+    color: #fff;
+}
+
+.login-resend-btn {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: center;
+    letter-spacing: 1px;
+    padding: 0.4rem 0;
+    transition: color 0.2s;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.login-resend-btn:hover:not(:disabled) {
+    color: var(--primary);
+}
+
+.login-resend-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Error */
+.login-error {
+    background: rgba(255, 70, 70, 0.1);
+    border: 1px solid rgba(255, 70, 70, 0.25);
+    color: #ff6b6b;
+    border-radius: 10px;
+    padding: 0.65rem 0.9rem;
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+/* Progress dots */
+.login-dots {
+    display: flex;
+    gap: 8px;
+    margin-top: 1.5rem;
+}
+
+.login-dot {
+    width: 28px;
+    height: 3px;
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.12);
+    transition: all 0.3s ease;
+}
+
+.login-dot.active {
+    background: var(--primary);
+    width: 48px;
+}
+
+.login-dot.done {
+    background: rgba(226, 255, 59, 0.35);
+}
+
+/* Success overlay */
+.login-success {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    background: var(--bg-dark);
+    text-align: center;
+    padding: 2rem;
+}
+
+.login-success-title {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--primary);
+    letter-spacing: 1px;
+}
+
+.login-success-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.login-spinner-row {
+    margin-top: 0.5rem;
+}
+
+/* ????????? Phone row (dropdown + number input) ?????????????????????????????????????????????????????????????????????????????????????????????????????? */
+.phone-row {
+    display: flex;
+    align-items: stretch;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    overflow: visible;
+    margin-bottom: 0.6rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+}
+
+.phone-row:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(226, 255, 59, 0.08);
+}
+
+.phone-number-input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 1.05rem;
+    font-family: inherit;
+    padding: 1rem 1rem 1rem 0.5rem;
+    letter-spacing: 0.5px;
+}
+
+.phone-number-input::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+/* ????????? Country code trigger button ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????? */
+.cc-wrap {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.cc-trigger {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255, 255, 255, 0.04);
+    border: none;
+    border-right: 1px solid var(--glass-border);
+    border-radius: 14px 0 0 14px;
+    padding: 0 12px;
+    height: 100%;
+    min-height: 54px;
+    cursor: pointer;
+    color: #fff;
+    font-family: inherit;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.cc-trigger:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.cc-flag {
+    font-size: 1.3rem;
+    line-height: 1;
+    margin-right: 2px;
+}
+
+.cc-dial {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: 0.5px;
+}
+
+.cc-chevron {
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+}
+
+.cc-chevron.open {
+    transform: rotate(180deg);
+}
+
+/* ????????? Dropdown panel ????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????? */
+.cc-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 999;
+    width: 280px;
+    background: #1a1a1c;
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(226, 255, 59, 0.06);
+    display: flex;
+    flex-direction: column;
+    max-height: 340px;
+}
+
+/* Search row */
+.cc-search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--glass-border);
+    flex-shrink: 0;
+}
+
+.cc-search-icon {
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.cc-search {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 12px;
+    font-family: inherit;
+    letter-spacing: 0.3px;
+}
+
+.cc-search::placeholder {
+    color: rgba(255, 255, 255, 0.25);
+}
+
+/* Scrollable list */
+.cc-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 6px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--glass-border) transparent;
+}
+
+.cc-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.cc-list::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: 2px;
+}
+
+/* Each country row */
+.cc-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 9px 14px;
+    cursor: pointer;
+    text-align: left;
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    transition: background 0.15s;
+}
+
+.cc-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.cc-item.active {
+    background: rgba(226, 255, 59, 0.07);
+}
+
+.cc-item .cc-flag {
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.cc-item-name {
+    flex: 1;
+    color: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cc-item-dial {
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.cc-empty {
+    padding: 20px 14px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+/* ????????? Guest bypass ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????? */
+.login-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0.75rem 0;
+    color: rgba(255, 255, 255, 0.15);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.login-divider::before,
+.login-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--glass-border);
+}
+
+.login-guest-btn {
+    width: 100%;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    border-radius: 100px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+    margin-bottom: 0.5rem;
+}
+
+.login-guest-btn:hover:not(:disabled) {
+    border-color: rgba(255, 255, 255, 0.25);
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.login-guest-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.login-guest-note {
+    text-align: center;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.2);
+    letter-spacing: 0.5px;
+    line-height: 1.5;
+    margin-top: 0;
+}

@@ -1,10 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_KEY || '';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase credentials missing. Check your .env file or Vercel environment variables.');
+    if (typeof window !== 'undefined') {
+        console.warn('Supabase credentials missing. Check your .env file or Vercel environment variables.');
+    }
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Singleton Supabase client - import this everywhere instead of creating new instances
+export const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
