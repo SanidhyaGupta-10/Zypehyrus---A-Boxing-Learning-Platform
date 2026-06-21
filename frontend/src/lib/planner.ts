@@ -1,7 +1,14 @@
 import { API_BASE_URL } from './api';
+import type {
+    GeminiGenerateContentResponse,
+    GeminiTextPart,
+    PlannerDay,
+    PlannerProtocolBlock,
+    PlannerUserData,
+    WeeklyPlan,
+} from '@/types';
 
 export const GEMINI_MODEL = 'gemini-2.0-flash';
-export const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6IH98YjO8aKwtVto4uCKNdq9ytSuKmp1XsWvOgyCqZYUw';
 
 export const DAY_TYPES = [
     { key: 'push', label: 'PUSH DAY' },
@@ -111,21 +118,21 @@ export function addMinutes(timeStr: string, minutes: number): string {
     return padTime(Math.floor(total / 60), total % 60);
 }
 
-export function getPreferredTime(userData: any): string {
+export function getPreferredTime(userData: PlannerUserData): string {
     return userData?.planner_config?.preferred_time || userData?.plannerConfig?.preferredTime || '07:30';
 }
 
-export function applyUserSchedule(plan: any, userData: any) {
+export function applyUserSchedule(plan: WeeklyPlan, userData: PlannerUserData): WeeklyPlan {
     if (!plan?.days?.length) return plan;
     const preferred = getPreferredTime(userData);
 
-    plan.days.forEach((day: any, i: number) => {
+    plan.days.forEach((day, i) => {
         const dt = DAY_TYPES[i] || DAY_TYPES[0];
         const dayLabel = day.day_type || dt.label;
         const schedule = buildProtocolsForDay(dt.key, dayLabel, preferred);
         const protocols = Array.isArray(day.protocol) ? day.protocol : [];
 
-        day.protocol = protocols.map((p: any, j: number) => ({
+        day.protocol = protocols.map((p, j) => ({
             ...p,
             time: schedule[j]?.time || addMinutes(preferred, PROTOCOL_BLOCKS[j]?.offsetMin || 0),
         }));
@@ -149,7 +156,7 @@ export function pickExercises(dayKey: string, blockIndex: number, count: number)
     return out;
 }
 
-export function buildProtocolsForDay(dayKey: string, dayLabel: string, preferredTime: string) {
+export function buildProtocolsForDay(dayKey: string, dayLabel: string, preferredTime: string): PlannerProtocolBlock[] {
     return PROTOCOL_BLOCKS.map((block, i) => ({
         time: addMinutes(preferredTime, block.offsetMin),
         duration: block.duration,
@@ -172,7 +179,7 @@ export function recoveryForDay(dayKey: string): string {
     return map[dayKey] || 'Active mobility & hydration';
 }
 
-export function buildWeeklyPlan(userData: any) {
+export function buildWeeklyPlan(userData: PlannerUserData): WeeklyPlan {
     const start = new Date();
     const preferred = getPreferredTime(userData);
     const end = new Date(start);
@@ -212,7 +219,7 @@ export function buildWeeklyPlan(userData: any) {
     };
 }
 
-export function normalizePlan(plan: any, userData: any) {
+export function normalizePlan(plan: Partial<WeeklyPlan> | null | undefined, userData: PlannerUserData): WeeklyPlan {
     const local = buildWeeklyPlan(userData);
     if (!plan || !Array.isArray(plan.days) || plan.days.length < 7) {
         return local;
@@ -221,7 +228,7 @@ export function normalizePlan(plan: any, userData: any) {
     const normalized = {
         week_range: plan.week_range || local.week_range,
         intensity_score: plan.intensity_score || local.intensity_score,
-        days: plan.days.slice(0, 7).map((day: any, i: number) => {
+        days: plan.days.slice(0, 7).map((day: Partial<PlannerDay>, i: number) => {
             const fallback = local.days[i];
             const dayType =
                 day.day_type ||
@@ -230,7 +237,7 @@ export function normalizePlan(plan: any, userData: any) {
 
             let protocols = Array.isArray(day.protocol) ? day.protocol : [];
             if (protocols.length < 5) {
-                protocols = fallback.protocol.map((fb: any, j: number) => ({
+                protocols = fallback.protocol.map((fb, j) => ({
                     ...fb,
                     ...(protocols[j] || {}),
                     time: fb.time,
@@ -241,7 +248,7 @@ export function normalizePlan(plan: any, userData: any) {
                     protocols.push(fallback.protocol[protocols.length]);
                 }
             } else {
-                protocols = protocols.slice(0, 5).map((p: any, j: number) => {
+                protocols = protocols.slice(0, 5).map((p, j) => {
                     const fb = fallback.protocol[j] || fallback.protocol[0];
                     const exercises = (
                         Array.isArray(p.exercises) && p.exercises.length
@@ -261,7 +268,7 @@ export function normalizePlan(plan: any, userData: any) {
                     };
                 });
             }
-            protocols = protocols.map((p: any) => ({
+            protocols = protocols.map((p) => ({
                 ...p,
                 exercises: (p.exercises || []).slice(0, EXERCISES_PER_BLOCK),
             }));
@@ -288,7 +295,7 @@ export function normalizePlan(plan: any, userData: any) {
     return scheduled;
 }
 
-export function buildPlannerPrompts(userData: any) {
+export function buildPlannerPrompts(userData: PlannerUserData) {
     const preferred = getPreferredTime(userData);
     const peak = userData?.planner_config?.peak_window || userData?.plannerConfig?.peakWindow || 'MORNING';
     const goal = userData?.primary_goal || userData?.primaryGoal || 'All-Rounder';
@@ -358,7 +365,7 @@ export function parsePlanFromGeminiText(text: string) {
     return JSON.parse(jsonMatch[0]);
 }
 
-export async function generatePlanViaGeminiDirect(apiKey: string, userData: any) {
+export async function generatePlanViaGeminiDirect(apiKey: string, userData: PlannerUserData) {
     if (!apiKey) throw new Error('Gemini API key is missing.');
 
     const { systemPrompt, userPrompt } = buildPlannerPrompts(userData);
@@ -385,17 +392,17 @@ export async function generatePlanViaGeminiDirect(apiKey: string, userData: any)
         throw new Error(`Gemini API error ${res.status}: ${errText.slice(0, 200)}`);
     }
 
-    const data = await res.json();
+    const data = await res.json() as GeminiGenerateContentResponse;
     const parts = data?.candidates?.[0]?.content?.parts;
     if (!parts?.length) {
         const block = data?.promptFeedback?.blockReason;
         throw new Error(block ? `Gemini blocked: ${block}` : 'No content from Gemini.');
     }
-    const text = parts.map((p: any) => p.text || '').join('');
+    const text = parts.map((p: GeminiTextPart) => p.text || '').join('');
     return parsePlanFromGeminiText(text);
 }
 
-export async function fetchPlan(userData: any): Promise<any> {
+export async function fetchPlan(userData: PlannerUserData): Promise<WeeklyPlan> {
     const backendUrl = `${API_BASE_URL}/api/generate-plan`;
     
     try {
@@ -435,17 +442,18 @@ export async function fetchPlan(userData: any): Promise<any> {
                 return normalizePlan(resJson.plan, userData);
             }
         }
-    } catch (err: any) {
-        console.warn('[Planner] Backend Gemini proxy failed:', err.message);
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn('[Planner] Backend Gemini proxy failed:', message);
     }
 
-    // Direct client-side API fallback
-    const key = process.env.NEXT_PUBLIC_GEMINI_API_KEY || DEFAULT_GEMINI_KEY;
+    // Direct client-side API fallback is opt-in because NEXT_PUBLIC_* values ship to browsers.
+    const key = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
     if (key) {
         console.log('[Planner] Calling Gemini API directly from client');
         const raw = await generatePlanViaGeminiDirect(key, userData);
         return normalizePlan(raw, userData);
     }
 
-    throw new Error('Gemini AI is required to build your planner. Please configure the API Key.');
+    return buildWeeklyPlan(userData);
 }

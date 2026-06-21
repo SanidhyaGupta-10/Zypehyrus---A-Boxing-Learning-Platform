@@ -33,7 +33,7 @@ export const bodyweightExercises: Record<string, any[]> = {
     ]
 };
 
-export const boxingRoutineExercises = [
+export const boxingRoutineExercises: any[] = [
     { name: "Shadowboxing Speed", baseDuration: 180, focus: "Reflexes", instruction: "Focus on rapid-fire jab-cross combinations." },
     { name: "Shadowboxing Power", baseDuration: 180, focus: "Strength", instruction: "Reset after every punch, throw with 100% rotation." },
     { name: "Shadowboxing Stamina", baseDuration: 180, focus: "Stamina", instruction: "Non-stop movement, high volume output." },
@@ -87,7 +87,7 @@ export function generateDailyWorkout(dateInput?: Date): Workout {
     const pool = bodyweightExercises[muscleGroup] || bodyweightExercises["Legs"];
 
     const selectedBodyweight: Drill[] = [];
-    const poolIndices = [...Array(pool.length).keys()];
+    const poolIndices = Array.from({ length: pool.length }, (_, i) => i);
     for (let i = 0; i < bodyweightCount && poolIndices.length > 0; i++) {
         const randomIndex = poolIndices.splice(Math.floor(Math.random() * poolIndices.length), 1)[0];
         const ex = { ...pool[randomIndex] };
@@ -104,7 +104,7 @@ export function generateDailyWorkout(dateInput?: Date): Workout {
     }
 
     const selectedBoxing: Drill[] = [];
-    const boxingIndices = [...Array(boxingRoutineExercises.length).keys()];
+    const boxingIndices = Array.from({ length: boxingRoutineExercises.length }, (_, i) => i);
     for (let i = 0; i < boxingCount && boxingIndices.length > 0; i++) {
         const randomIndex = boxingIndices.splice(Math.floor(Math.random() * boxingIndices.length), 1)[0];
         const ex = { ...boxingRoutineExercises[randomIndex] };

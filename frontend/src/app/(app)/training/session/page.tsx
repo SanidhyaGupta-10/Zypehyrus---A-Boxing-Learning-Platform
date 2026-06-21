@@ -6,19 +6,41 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, 
   Pause, 
-  Square, 
   Check, 
   Heart, 
   Flame, 
-  ArrowLeft, 
   Mic, 
-  Volume2, 
-  VolumeX,
   Target
 } from 'lucide-react';
 import { getDailyWorkout } from '@/lib/workout-data';
-import { GlassCard } from '@/components/ui/GlassCard';
-import { NeonButton } from '@/components/ui/NeonButton';
+import { getProtocolBlock, loadCachedDrills, markDrillComplete, markProtocolFullyComplete } from '@/lib/protocol-session';
+import type { ProtocolSessionDrill, Workout } from '@/types';
+
+interface SpeechRecognitionLike {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+interface SpeechRecognitionEventLike {
+  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+interface WindowWithSpeechRecognition extends Window {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+}
+
+interface SessionWorkout extends Omit<Workout, 'drills' | 'focus'> {
+  focus?: string;
+  drills: ProtocolSessionDrill[];
+}
 
 function SessionTimerContent() {
   const router = useRouter();
@@ -32,8 +54,8 @@ function SessionTimerContent() {
   
   const isProtocol = source === 'protocol' && dayIdx !== null && pIdx !== null;
 
-  const [workout, setWorkout] = useState<any>(null);
-  const [currentDrill, setCurrentDrill] = useState<any>(null);
+  const [workout, setWorkout] = useState<SessionWorkout | null>(null);
+  const [currentDrill, setCurrentDrill] = useState<ProtocolSessionDrill | null>(null);
   
   // Game loops
   const [phase, setPhase] = useState<'idle' | 'prep' | 'active' | 'rest'>('idle');
@@ -51,7 +73,7 @@ function SessionTimerContent() {
 
   // References
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   // Speech synthesis voice setting
   const synthRef = useRef<SpeechSynthesis | null>(null);
@@ -63,28 +85,16 @@ function SessionTimerContent() {
     }
 
     // Get workout data
-    let sessionWorkout: any = null;
+    let sessionWorkout: SessionWorkout | null = null;
     if (isProtocol) {
       try {
-        const storedPlanner = localStorage.getItem('active_boxing_plan_v2');
-        if (storedPlanner) {
-          const plan = JSON.parse(storedPlanner);
-          const day = plan?.days?.[parseInt(dayIdx!)];
-          const protocol = day?.protocol?.[parseInt(pIdx!)];
-          if (protocol) {
-            // Re-map to daily drills format
-            sessionWorkout = {
-              title: protocol.title || 'Protocol Block',
-              drills: (protocol.drills || []).map((d: any) => ({
-                name: d.title || d.name,
-                instruction: d.instruction || 'Strategic combo routine',
-                duration: parseInt(d.duration) || 180,
-                type: 'timer',
-                isPlanner: true,
-                impact: d.impact
-              }))
-            };
-          }
+        const protocol = getProtocolBlock(dayIdx!, pIdx!);
+        const drills = loadCachedDrills(dayIdx!, pIdx!);
+        if (protocol) {
+          sessionWorkout = {
+            title: protocol.title || 'Protocol Block',
+            drills,
+          };
         }
       } catch (e) {
         console.error('Failed to parse protocol drills:', e);
@@ -121,7 +131,7 @@ function SessionTimerContent() {
 
     // Initialize Web Speech API for voice triggers
     if (typeof window !== 'undefined') {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition = (window as WindowWithSpeechRecognition).SpeechRecognition || (window as WindowWithSpeechRecognition).webkitSpeechRecognition;
       if (SpeechRecognition) {
         setVoiceSupported(true);
         const rec = new SpeechRecognition();
@@ -129,7 +139,7 @@ function SessionTimerContent() {
         rec.interimResults = false;
         rec.lang = 'en-US';
 
-        rec.onresult = (event: any) => {
+        rec.onresult = (event) => {
           const command = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
           console.log('[Voice Engine] Detected:', command);
           if (command.includes('start') || command.includes('begin')) {
@@ -143,7 +153,7 @@ function SessionTimerContent() {
           }
         };
 
-        rec.onerror = (e: any) => {
+        rec.onerror = (e) => {
           console.warn('[Voice Engine] Error:', e.error);
         };
 
@@ -156,7 +166,7 @@ function SessionTimerContent() {
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
-        } catch(e) {}
+        } catch {}
       }
     };
   }, [drillIndex, source, dayIdx, pIdx, autostart, router]);
@@ -167,7 +177,7 @@ function SessionTimerContent() {
     if (voiceActive) {
       try {
         recognitionRef.current.stop();
-      } catch (e) {}
+      } catch {}
       setVoiceActive(false);
     } else {
       try {
@@ -292,7 +302,7 @@ function SessionTimerContent() {
           const dateKey = new Date().toDateString();
           const trackerKey = 'planner_drills_completed_' + dateKey;
           const plannerCompleted = JSON.parse(localStorage.getItem(trackerKey) || '[]');
-          if (!plannerCompleted.some((d: any) => d.name === currentDrill.name)) {
+          if (!plannerCompleted.some((d: { name?: string }) => d.name === currentDrill.name)) {
             plannerCompleted.push({
               name: currentDrill.name,
               completed_at: Date.now(),
@@ -307,12 +317,7 @@ function SessionTimerContent() {
     } else {
       // Protocol specific completion (if needed)
       try {
-        const cacheKey = `protocol_progress_${dayIdx}_${pIdx}`;
-        const completed = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-        if (!completed.includes(drillIndex)) {
-          completed.push(drillIndex);
-          localStorage.setItem(cacheKey, JSON.stringify(completed));
-        }
+        markDrillComplete(dayIdx!, pIdx!, drillIndex);
       } catch (e) {
         console.error('Failed to save protocol progress:', e);
       }
@@ -322,7 +327,7 @@ function SessionTimerContent() {
     if (workout && nextIdx >= workout.drills.length) {
       // Fully completed workout session!
       if (isProtocol) {
-        localStorage.setItem(`protocol_complete_${dayIdx}_${pIdx}`, 'true');
+        markProtocolFullyComplete(dayIdx!, pIdx!);
         router.replace('/planner');
       } else {
         router.replace('/training');

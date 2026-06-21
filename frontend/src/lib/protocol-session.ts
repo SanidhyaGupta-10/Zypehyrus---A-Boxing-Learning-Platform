@@ -1,32 +1,38 @@
+import type { PlannerProtocolBlock, ProtocolSessionDrill, WeeklyPlan } from '@/types';
+
 const MAX_EXERCISES_PER_BLOCK = 2;
 const WORK_SECONDS = 45;
 const REST_SECONDS = 15;
 
 export function progressKey(dayIdx: string, pIdx: string): string {
-    return `workout_progress_protocol_${dayIdx}_${pIdx}`;
+    return `protocol_progress_${dayIdx}_${pIdx}`;
 }
 
 export function completeKey(dayIdx: string, pIdx: string): string {
-    return `protocol_completed_${dayIdx}_${pIdx}`;
+    return `protocol_complete_${dayIdx}_${pIdx}`;
 }
 
 export function drillsCacheKey(dayIdx: string, pIdx: string): string {
     return `protocol_drills_${dayIdx}_${pIdx}`;
 }
 
-export function getPlan(): any | null {
+export function getPlan(): WeeklyPlan | null {
     if (typeof window === 'undefined') return null;
     try {
         return JSON.parse(localStorage.getItem('active_boxing_plan_v2') || 'null');
-    } catch (e) {
+    } catch {
         return null;
     }
 }
 
-export function getDrillsForProtocol(dayIdx: string, pIdx: string): any[] {
+export function getProtocolBlock(dayIdx: string, pIdx: string): PlannerProtocolBlock | null {
     const plan = getPlan();
     const day = plan?.days?.[parseInt(dayIdx, 10)];
-    const protocol = day?.protocol?.[parseInt(pIdx, 10)];
+    return day?.protocol?.[parseInt(pIdx, 10)] ?? null;
+}
+
+export function getDrillsForProtocol(dayIdx: string, pIdx: string): ProtocolSessionDrill[] {
+    const protocol = getProtocolBlock(dayIdx, pIdx);
     if (!protocol) return [];
 
     const exercises = (protocol.exercises || []).slice(0, MAX_EXERCISES_PER_BLOCK);
@@ -43,7 +49,7 @@ export function getDrillsForProtocol(dayIdx: string, pIdx: string): any[] {
     }));
 }
 
-export function cacheDrills(dayIdx: string, pIdx: string): any[] {
+export function cacheDrills(dayIdx: string, pIdx: string): ProtocolSessionDrill[] {
     const drills = getDrillsForProtocol(dayIdx, pIdx);
     if (typeof window !== 'undefined') {
         sessionStorage.setItem(drillsCacheKey(dayIdx, pIdx), JSON.stringify(drills));
@@ -51,7 +57,7 @@ export function cacheDrills(dayIdx: string, pIdx: string): any[] {
     return drills;
 }
 
-export function loadCachedDrills(dayIdx: string, pIdx: string): any[] {
+export function loadCachedDrills(dayIdx: string, pIdx: string): ProtocolSessionDrill[] {
     if (typeof window !== 'undefined') {
         try {
             const raw = sessionStorage.getItem(drillsCacheKey(dayIdx, pIdx));
@@ -59,7 +65,7 @@ export function loadCachedDrills(dayIdx: string, pIdx: string): any[] {
                 const parsed = JSON.parse(raw);
                 if (Array.isArray(parsed) && parsed.length) return parsed;
             }
-        } catch (e) { /* ignore */ }
+        } catch { /* ignore */ }
     }
     return cacheDrills(dayIdx, pIdx);
 }
@@ -68,7 +74,7 @@ export function getCompletedIndices(dayIdx: string, pIdx: string): number[] {
     if (typeof window === 'undefined') return [];
     try {
         return JSON.parse(localStorage.getItem(progressKey(dayIdx, pIdx)) || '[]');
-    } catch (e) {
+    } catch {
         return [];
     }
 }
@@ -110,14 +116,12 @@ export function markProtocolFullyComplete(dayIdx: string, pIdx: string): boolean
     if (typeof window !== 'undefined') {
         localStorage.setItem(completeKey(dayIdx, pIdx), '1');
 
-        const plan = getPlan();
-        const day = plan?.days?.[parseInt(dayIdx, 10)];
-        const protocol = day?.protocol?.[parseInt(pIdx, 10)];
+        const protocol = getProtocolBlock(dayIdx, pIdx);
         if (protocol) {
             const todayKey = new Date().toDateString();
             const storageKey = 'deployed_planner_drills_' + todayKey;
             const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            if (!existing.some((d: any) => d.title === protocol.title && d.fullyComplete)) {
+            if (!existing.some((d: PlannerProtocolBlock) => d.title === protocol.title && d.fullyComplete)) {
                 existing.push({
                     ...protocol,
                     deployed_at: Date.now(),

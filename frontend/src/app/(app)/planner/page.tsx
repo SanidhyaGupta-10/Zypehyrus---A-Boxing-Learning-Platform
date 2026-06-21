@@ -1,11 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
-  Calendar, 
   Clock, 
   Sun, 
   CloudSun, 
@@ -13,16 +11,15 @@ import {
   Ghost, 
   Play, 
   Check, 
-  Sparkles, 
   Lock, 
   ArrowRight,
   RotateCcw,
   Settings,
-  Flame,
   Activity,
-  Heart
 } from 'lucide-react';
-import { fetchPlan, buildWeeklyPlan, DAY_TYPES } from '@/lib/planner';
+import { fetchPlan } from '@/lib/planner';
+import { completeKey, progressKey } from '@/lib/protocol-session';
+import type { PlannerUserData, WeeklyPlan } from '@/types';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { NeonButton } from '@/components/ui/NeonButton';
 
@@ -32,7 +29,7 @@ export default function PlannerPage() {
   const [isConfigured, setIsConfigured] = useState(false);
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [plan, setPlan] = useState<any>(null);
+  const [plan, setPlan] = useState<WeeklyPlan | null>(null);
   const [activeDayIdx, setActiveDayIdx] = useState(0);
 
   // Calibration Form State
@@ -48,7 +45,7 @@ export default function PlannerPage() {
     }
     
     setIsOnboarded(true);
-    let onboardingData = {};
+    let onboardingData: PlannerUserData = {};
     try {
       onboardingData = JSON.parse(onboardingRaw);
     } catch (e) {
@@ -64,7 +61,7 @@ export default function PlannerPage() {
         setIsConfigured(true);
 
         // Load calibration states from plan or onboarding
-        const config = (onboardingData as any).planner_config || (onboardingData as any).plannerConfig;
+        const config = onboardingData.planner_config || onboardingData.plannerConfig;
         if (config) {
           setPeakWindow(config.peak_window || 'MORNING');
           setPreferredTime(config.preferred_time || '07:30');
@@ -81,7 +78,7 @@ export default function PlannerPage() {
     setLoading(true);
     try {
       const onboardingRaw = localStorage.getItem('boxing_onboarding_data') || '{}';
-      const onboardingData = JSON.parse(onboardingRaw);
+      const onboardingData = JSON.parse(onboardingRaw) as PlannerUserData;
 
       // Save calibration to onboarding
       onboardingData.planner_config = {
@@ -110,13 +107,13 @@ export default function PlannerPage() {
       setLoading(true);
       try {
         const onboardingRaw = localStorage.getItem('boxing_onboarding_data') || '{}';
-        const onboardingData = JSON.parse(onboardingRaw);
+        const onboardingData = JSON.parse(onboardingRaw) as PlannerUserData;
         
         // Remove completed cache for protocols
         for (let i = 0; i < 7; i++) {
           for (let j = 0; j < 5; j++) {
-            localStorage.removeItem(`protocol_progress_${i}_${j}`);
-            localStorage.removeItem(`protocol_complete_${i}_${j}`);
+            localStorage.removeItem(progressKey(String(i), String(j)));
+            localStorage.removeItem(completeKey(String(i), String(j)));
           }
         }
 
@@ -136,7 +133,8 @@ export default function PlannerPage() {
   // Helper to check if a protocol block is completed
   const isProtocolBlockCompleted = (dayIdx: number, pIdx: number) => {
     if (typeof window === 'undefined') return false;
-    return localStorage.getItem(`protocol_complete_${dayIdx}_${pIdx}`) === 'true';
+    const stored = localStorage.getItem(completeKey(String(dayIdx), String(pIdx)));
+    return stored === '1' || stored === 'true';
   };
 
   // Peak Window choices
@@ -426,7 +424,7 @@ export default function PlannerPage() {
         </div>
 
         <div className="flex items-end justify-between h-20 gap-2 px-2">
-          {plan.days.map((day: any, i: number) => {
+          {plan.days.map((day, i) => {
             const active = activeDayIdx === i;
             return (
               <div 
