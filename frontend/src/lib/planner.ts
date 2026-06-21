@@ -403,10 +403,23 @@ export async function fetchPlan(userData: any): Promise<any> {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 30000);
         
+        const requestBody = {
+            experience: userData.experience_level || userData.experienceLevel || 'Novice',
+            focus: userData.primary_goal || userData.primaryGoal || 'All-Rounder',
+            equipment: userData.constraints?.equipment || userData.gear || ['shadowbox'],
+            duration: userData.available_time || userData.availableTime || 30,
+            frequency: userData.frequency || 5,
+            user_metrics: {
+                age: userData.age || 25,
+                weight: userData.weight || 75,
+                height: userData.height || 180
+            }
+        };
+        
         const response = await fetch(backendUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userData }),
+            body: JSON.stringify(requestBody),
             signal: controller.signal
         });
         

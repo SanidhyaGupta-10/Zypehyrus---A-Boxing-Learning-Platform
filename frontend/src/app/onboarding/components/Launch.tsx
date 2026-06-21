@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useOnboarding } from '@/context/OnboardingContext';
-import { redirectToDashboard } from '../../lib/navigation';
 
 const Launch: React.FC = () => {
+    const router = useRouter();
     const { data, syncToSupabase } = useOnboarding();
     const [isLaunching, setIsLaunching] = useState(false);
 
     const handleLaunch = async () => {
         setIsLaunching(true);
         await syncToSupabase();
-        redirectToDashboard();
+        router.replace('/dashboard');
     };
 
     const focusLabel = data.goals.length > 0 ? data.goals.join(' ??? ') : data.primary_goal;
