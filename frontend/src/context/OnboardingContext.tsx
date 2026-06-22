@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 export interface OnboardingConstraints {
     equipment?: string[];
@@ -33,6 +35,7 @@ interface OnboardingContextType {
     prevStep: () => void;
     currentStep: number;
     totalSteps: number;
+    isLoaded: boolean;
 }
 
 const defaultData: OnboardingData = {
@@ -55,6 +58,7 @@ const defaultData: OnboardingData = {
 };
 
 function serializeOnboarding(data: OnboardingData): Record<string, unknown> {
+    if (typeof window === 'undefined') return {};
     const avatar = localStorage.getItem('boxing_user_avatar');
     const goals = data.goals.length > 0 ? data.goals : (data.primary_goal ? [data.primary_goal] : []);
 
@@ -84,32 +88,39 @@ const OnboardingContext = createContext<OnboardingContextType | undefined>(undef
 
 export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [currentStep, setCurrentStep] = useState(1);
-    const [data, setData] = useState<OnboardingData>(() => {
+    const [data, setData] = useState<OnboardingData>(defaultData);
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    useEffect(() => {
         try {
             const stored = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
-            return {
-                ...defaultData,
-                ringName: stored.ring_name || '',
-                phone: stored.phone_number || '',
-                age: stored.user_metrics?.age ?? defaultData.age,
-                height: stored.user_metrics?.height ?? defaultData.height,
-                weight: stored.user_metrics?.weight ?? defaultData.weight,
-                goals: stored.goals || [],
-                promiseWord: stored.promise || '',
-                primary_goal: stored.primary_goal || defaultData.primary_goal,
-                experience_level: stored.experience_level || '',
-                available_time: stored.available_time ?? defaultData.available_time,
-                constraints: stored.constraints || defaultData.constraints,
-                stance: stored.stance || defaultData.stance,
-                trigger: stored.trigger || defaultData.trigger,
-                intensity: stored.intensity ?? defaultData.intensity,
-                frequency: stored.frequency ?? defaultData.frequency,
-                hasCompletedOnboarding: !!stored.onboarding_completed,
-            };
-        } catch {
-            return defaultData;
+            if (stored && Object.keys(stored).length > 0) {
+                setData({
+                    ...defaultData,
+                    ringName: stored.ring_name || '',
+                    phone: stored.phone_number || '',
+                    age: stored.user_metrics?.age ?? defaultData.age,
+                    height: stored.user_metrics?.height ?? defaultData.height,
+                    weight: stored.user_metrics?.weight ?? defaultData.weight,
+                    goals: stored.goals || [],
+                    promiseWord: stored.promise || '',
+                    primary_goal: stored.primary_goal || defaultData.primary_goal,
+                    experience_level: stored.experience_level || '',
+                    available_time: stored.available_time ?? defaultData.available_time,
+                    constraints: stored.constraints || defaultData.constraints,
+                    stance: stored.stance || defaultData.stance,
+                    trigger: stored.trigger || defaultData.trigger,
+                    intensity: stored.intensity ?? defaultData.intensity,
+                    frequency: stored.frequency ?? defaultData.frequency,
+                    hasCompletedOnboarding: !!stored.onboarding_completed,
+                });
+            }
+        } catch (e) {
+            console.error('Failed to load onboarding data:', e);
+        } finally {
+            setIsLoaded(true);
         }
-    });
+    }, []);
 
     const totalSteps = 11;
 
@@ -124,6 +135,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
 
     const persistProgress = useCallback(() => {
+        if (typeof window === 'undefined') return;
         const existing = JSON.parse(localStorage.getItem('boxing_onboarding_data') || '{}');
         const merged = { ...existing, ...serializeOnboarding(data) };
         localStorage.setItem('boxing_onboarding_data', JSON.stringify(merged));
@@ -137,6 +149,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
     const syncToSupabase = async () => {
+        if (typeof window === 'undefined') return;
         const payload = {
             ...serializeOnboarding(data),
             onboarding_completed: true,
@@ -150,7 +163,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     return (
         <OnboardingContext.Provider
-            value={{ data, updateData, persistProgress, syncToSupabase, nextStep, prevStep, currentStep, totalSteps }}
+            value={{ data, updateData, persistProgress, syncToSupabase, nextStep, prevStep, currentStep, totalSteps, isLoaded }}
         >
             {children}
         </OnboardingContext.Provider>

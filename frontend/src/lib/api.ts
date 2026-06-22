@@ -1,15 +1,12 @@
 /**
- * Central API client for the ZEPHYR production backend (Cloud Run).
- * Base URL is read from import.meta.env.NEXT_PUBLIC_API_URL (Vite exposes NEXT_PUBLIC_* per vite.config).
- * Direct import.meta.env access is required so Vite can inline values at build time.
+ * Central API client for the ZEPHYR production backend.
+ * Base URL is read from process.env.NEXT_PUBLIC_API_URL.
  */
 
 const DEFAULT_DEV_URL = 'http://localhost:8080';
 
 export const API_BASE_URL: string = (
-    import.meta.env.NEXT_PUBLIC_API_URL ||
-    import.meta.env.VITE_API_URL ||
-    import.meta.env.VITE_BACKEND_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
     DEFAULT_DEV_URL
 ).replace(/\/$/, '');
 

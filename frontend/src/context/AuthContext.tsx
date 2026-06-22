@@ -1,7 +1,9 @@
+'use client';
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabaseClient';
-import { checkBackendHealth } from '../lib/api';
+import { supabase } from '@/lib/supabase';
+import { checkBackendHealth } from '@/lib/api';
 
 interface AuthContextValue {
     session: Session | null;
@@ -62,7 +64,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await supabase.auth.signOut();
         }
     };
-
 
     return (
         <AuthContext.Provider value={{ session, user, loading, signOut }}>
